@@ -1,9 +1,10 @@
 import svelte from 'rollup-plugin-svelte';
-import open from 'open';
 import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import livereload from 'rollup-plugin-livereload';
 import { terser } from 'rollup-plugin-terser';
+import css from 'rollup-plugin-css-only';
+import postcss from '@rollup/plugin-postcss';
 import sveltePreprocess from 'svelte-preprocess';
 
 const production = !process.env.ROLLUP_WATCH;
@@ -18,22 +19,28 @@ export default {
   },
   plugins: [
     svelte({
-      preprocess: sveltePreprocess({ postcss: true }),
-      // enable run-time checks when not in production
-      dev: !production,
-      // we'll extract any component CSS out into
-      // a separate file - better for performance
-      css: (css) => {
-        css.write('public/build/bundle.css');
+      preprocess: sveltePreprocess({
+        postcss: true,
+      }),
+      compilerOptions: {
+        dev: !production,
       },
     }),
-
+    css({ output: 'bundle.css' }),
+    postcss({
+      extract: true,
+      minimize: true,
+      sourceMap: true,
+      plugins: [
+        require('tailwindcss'),
+        require('autoprefixer'),
+      ],
+    }),
     resolve({
       browser: true,
       dedupe: ['svelte'],
     }),
     commonjs(),
-    !production && serve(),
     !production && livereload('public'),
     production && terser(),
   ],
@@ -41,21 +48,3 @@ export default {
     clearScreen: false,
   },
 };
-
-function serve() {
-  let started = false;
-
-  return {
-    writeBundle() {
-      if (!started) {
-        started = true;
-
-        require('child_process').spawn('yarn', ['start', '--dev'], {
-          stdio: ['ignore', 'inherit', 'inherit'],
-          shell: true,
-        });
-        open('http://localhost:5000');
-      }
-    },
-  };
-}
