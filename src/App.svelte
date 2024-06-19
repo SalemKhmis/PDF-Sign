@@ -8,11 +8,14 @@
   import Drawing from "./Drawing.svelte";
   import DrawingCanvas from "./DrawingCanvas.svelte";
   import prepareAssets, { fetchFont } from "./utils/prepareAssets.js";
-  import { readAsArrayBuffer, readAsImage, readAsPDF, readAsDataURL } from "./utils/asyncReader.js";
+  import {
+    readAsArrayBuffer,
+    readAsImage,
+    readAsPDF,
+    readAsDataURL
+  } from "./utils/asyncReader.js";
   import { ggID } from "./utils/helper.js";
   import { save } from "./utils/PDF.js";
-  import LeftMenu from "./LeftMenu.svelte"; // Import the LeftMenu component
-
   const genID = ggID();
   let pdfFile;
   let pdfName = "";
@@ -24,7 +27,6 @@
   let selectedPageIndex = -1;
   let saving = false;
   let addingDrawing = false;
-
   // for test purpose
   onMount(async () => {
     try {
@@ -40,7 +42,6 @@
       console.log(e);
     }
   });
-
   async function onUploadPDF(e) {
     const files = e.target.files || (e.dataTransfer && e.dataTransfer.files);
     const file = files[0];
@@ -53,7 +54,6 @@
       console.log(e);
     }
   }
-
   async function addPDF(file) {
     try {
       const pdf = await readAsPDF(file);
@@ -70,7 +70,6 @@
       throw e;
     }
   }
-
   async function onUploadImage(e) {
     const file = e.target.files[0];
     if (file && selectedPageIndex >= 0) {
@@ -78,7 +77,6 @@
     }
     e.target.value = null;
   }
-
   async function addImage(file) {
     try {
       // get dataURL to prevent canvas from tainted
@@ -103,13 +101,11 @@
       console.log(`Fail to add image.`, e);
     }
   }
-
   function onAddTextField() {
     if (selectedPageIndex >= 0) {
       addTextField();
     }
   }
-
   function addTextField(text = "New Text Field") {
     const id = genID();
     fetchFont(currentFont);
@@ -128,13 +124,11 @@
       pIndex === selectedPageIndex ? [...objects, object] : objects
     );
   }
-
   function onAddDrawing() {
     if (selectedPageIndex >= 0) {
       addingDrawing = true;
     }
   }
-
   function addDrawing(originWidth, originHeight, path, scale = 1) {
     const id = genID();
     const object = {
@@ -152,17 +146,14 @@
       pIndex === selectedPageIndex ? [...objects, object] : objects
     );
   }
-
   function selectFontFamily(event) {
     const name = event.detail.name;
     fetchFont(name);
     currentFont = name;
   }
-
   function selectPage(index) {
     selectedPageIndex = index;
   }
-
   function updateObject(objectId, payload) {
     allObjects = allObjects.map((objects, pIndex) =>
       pIndex == selectedPageIndex
@@ -172,7 +163,6 @@
         : objects
     );
   }
-
   function deleteObject(objectId) {
     allObjects = allObjects.map((objects, pIndex) =>
       pIndex == selectedPageIndex
@@ -180,11 +170,9 @@
         : objects
     );
   }
-
   function onMeasure(scale, i) {
     pagesScale[i] = scale;
   }
-
   // FIXME: Should wait all objects finish their async work
   async function savePDF() {
     if (!pdfFile || saving || !pages.length) return;
@@ -204,9 +192,7 @@
   on:dragover|preventDefault
   on:drop|preventDefault={onUploadPDF} />
 <Tailwind />
-
-<main class="flex flex-row min-h-screen bg-gray-100">
-  <LeftMenu class="flex-shrink-0" /> 
+<main class="flex flex-col items-center py-16 bg-gray-100 min-h-screen">
   <div
     class="fixed z-10 top-0 left-0 right-0 h-12 flex justify-center items-center
     bg-gray-200 border-b border-gray-300">
@@ -287,6 +273,8 @@
           if (originWidth > 500) {
             scale = 500 / originWidth;
           }
+          console.log('test drawing; ',originWidth, originHeight, scale);
+          
           addDrawing(originWidth, originHeight, path, scale);
           addingDrawing = false;
         }}
@@ -342,7 +330,7 @@
                     fontFamily={object.fontFamily}
                     pageScale={pagesScale[pIndex]} />
                 {:else if object.type === 'drawing'}
-                  <Drawing
+                  <Drawing 
                     on:update={e => updateObject(object.id, e.detail)}
                     on:delete={() => deleteObject(object.id)}
                     path={object.path}
