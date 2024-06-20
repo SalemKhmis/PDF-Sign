@@ -130,22 +130,23 @@
     }
   }
   function addDrawing(originWidth, originHeight, path, scale = 1) {
-    const id = genID();
-    const object = {
-      id,
-      path,
-      type: "drawing",
-      x: 0,
-      y: 0,
-      originWidth,
-      originHeight,
-      width: originWidth * scale,
-      scale
-    };
-    allObjects = allObjects.map((objects, pIndex) =>
-      pIndex === selectedPageIndex ? [...objects, object] : objects
-    );
-  }
+  const id = genID();
+  const object = {
+    id,
+    path,
+    type: "drawing",
+    x: 0,
+    y: 0,
+    originWidth,
+    originHeight,
+    width: originWidth * scale,
+    scale,
+    text: "312B35C8C87C485"
+  };
+  allObjects = allObjects.map((objects, pIndex) =>
+    pIndex === selectedPageIndex ? [...objects, object] : objects
+  );
+}
   function selectFontFamily(event) {
     const name = event.detail.name;
     fetchFont(name);
@@ -208,24 +209,24 @@
       name="image"
       class="hidden"
       on:change={onUploadImage} />
-    <div
+    <label
       class="whitespace-no-wrap bg-blue-500 hover:bg-blue-700 text-white
       font-bold py-1 px-3 md:px-4 rounded mr-3 cursor-pointer md:mr-4"
       for="pdf">
       Choose PDF
-    </div>
+    </label>
     <div
       class="relative mr-3 flex h-8 bg-gray-400 rounded-sm overflow-hidden
       md:mr-4">
-      <div
+      <label
         class="flex items-center justify-center h-full w-8 hover:bg-gray-500
         cursor-pointer"
         for="image"
         class:cursor-not-allowed={selectedPageIndex < 0}
         class:bg-gray-500={selectedPageIndex < 0}>
         <img src="image.svg" alt="An icon for adding images" />
-      </div>
-      <div
+      </label>
+      <label
         class="flex items-center justify-center h-full w-8 hover:bg-gray-500
         cursor-pointer"
         for="text"
@@ -233,15 +234,15 @@
         class:bg-gray-500={selectedPageIndex < 0}
         on:click={onAddTextField}>
         <img src="notes.svg" alt="An icon for adding text" />
-      </div>
-      <div
+      </label>
+      <label
         class="flex items-center justify-center h-full w-8 hover:bg-gray-500
         cursor-pointer"
         on:click={onAddDrawing}
         class:cursor-not-allowed={selectedPageIndex < 0}
         class:bg-gray-500={selectedPageIndex < 0}>
         <img src="gesture.svg" alt="An icon for adding drawing" />
-      </div>
+      </label>
     </div>
     <div class="justify-center mr-3 md:mr-4 w-full max-w-xs hidden md:flex">
       <img src="/edit.svg" class="mr-2" alt="a pen, edit pdf name" />
@@ -273,8 +274,6 @@
           if (originWidth > 500) {
             scale = 500 / originWidth;
           }
-          console.log('test drawing; ',originWidth, originHeight, scale);
-          
           addDrawing(originWidth, originHeight, path, scale);
           addingDrawing = false;
         }}
@@ -305,6 +304,7 @@
             <div
               class="absolute top-0 left-0 transform origin-top-left"
               style="transform: scale({pagesScale[pIndex]}); touch-action: none;">
+
               {#each allObjects[pIndex] as object (object.id)}
                 {#if object.type === 'image'}
                   <Image
@@ -330,7 +330,7 @@
                     fontFamily={object.fontFamily}
                     pageScale={pagesScale[pIndex]} />
                 {:else if object.type === 'drawing'}
-                  <Drawing 
+                  <Drawing
                     on:update={e => updateObject(object.id, e.detail)}
                     on:delete={() => deleteObject(object.id)}
                     path={object.path}
@@ -339,10 +339,10 @@
                     width={object.width}
                     originWidth={object.originWidth}
                     originHeight={object.originHeight}
-                    pageScale={pagesScale[pIndex]} />
+                    pageScale={pagesScale[pIndex]}
+                    text={object.text} /> <!-- Pass the text property -->
                 {/if}
               {/each}
-
             </div>
           </div>
         </div>

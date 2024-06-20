@@ -9,6 +9,8 @@
   export let y;
   export let pageScale = 1;
   export let path;
+  export let text = "312B35C8C87C485";
+
   const dispatch = createEventDispatcher();
   let startX;
   let startY;
@@ -19,9 +21,11 @@
   let dw = 0;
   let direction = "";
   const ratio = originWidth / originHeight;
+
   async function render() {
     svg.setAttribute("viewBox", `0 0 ${originWidth} ${originHeight}`);
   }
+
   function handlePanMove(event) {
     const _dx = (event.detail.x - startX) / pageScale;
     const _dy = (event.detail.y - startY) / pageScale;
@@ -66,6 +70,7 @@
     }
     operation = "";
   }
+
   function handlePanStart(event) {
     startX = event.detail.x;
     startY = event.detail.y;
@@ -75,9 +80,11 @@
     operation = "scale";
     direction = event.detail.target.dataset.direction;
   }
+
   function onDelete() {
     dispatch("delete");
   }
+
   onMount(render);
 </script>
 
@@ -90,30 +97,25 @@
 <svelte:options immutable={true} />
 <div
   class="absolute left-0 top-0 select-none"
-  style="width: {width + dw}px; height: {(width + dw) / ratio}px; transform:
-  translate({x + dx}px, {y + dy}px);">
+  style="width: {width + dw}px; height: {(width + dw) / ratio}px; transform: translate({x + dx}px, {y + dy}px);">
   <div
     use:pannable
     on:panstart={handlePanStart}
     on:panmove={handlePanMove}
     on:panend={handlePanEnd}
-    class="absolute w-full h-full cursor-grab border border-gray-400
-    border-dashed"
+    class="absolute w-full h-full cursor-grab border border-gray-400 border-dashed"
     class:cursor-grabbing={operation === 'move'}
     class:operation>
     <div
       data-direction="left-top"
-      class="absolute left-0 top-0 w-10 h-10 bg-green-400 rounded-full
-      cursor-nwse-resize transform -translate-x-1/2 -translate-y-1/2 md:scale-25" />
+      class="absolute left-0 top-0 w-10 h-10 bg-green-400 rounded-full cursor-nwse-resize transform -translate-x-1/2 -translate-y-1/2 md:scale-25" />
     <div
       data-direction="right-bottom"
-      class="absolute right-0 bottom-0 w-10 h-10 bg-green-400 rounded-full
-      cursor-nwse-resize transform translate-x-1/2 translate-y-1/2 md:scale-25" />
+      class="absolute right-0 bottom-0 w-10 h-10 bg-green-400 rounded-full cursor-nwse-resize transform translate-x-1/2 translate-y-1/2 md:scale-25" />
   </div>
   <div
     on:click={onDelete}
-    class="absolute left-0 top-0 right-0 w-12 h-12 m-auto rounded-full bg-white
-    cursor-pointer transform -translate-y-1/2 md:scale-25">
+    class="absolute left-0 top-0 right-0 w-12 h-12 m-auto rounded-full bg-white cursor-pointer transform -translate-y-1/2 md:scale-25">
     <img class="w-full h-full" src="/delete.svg" alt="delete object" />
   </div>
   <svg bind:this={svg} width="100%" height="100%">
@@ -125,4 +127,8 @@
       fill="none"
       d={path} />
   </svg>
+  <!-- Text element added below the signature -->
+  <div class="absolute left-0 bottom-0 w-full text-center text-sm transform translate-y-full" style="transform: translateY(10px);">
+    {text}
+  </div>
 </div>
