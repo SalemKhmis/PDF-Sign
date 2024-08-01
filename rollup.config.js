@@ -54,7 +54,7 @@ function serve() {
           stdio: ['ignore', 'inherit', 'inherit'],
           shell: true,
         });
-        open('http://localhost:5000');
+        open('http://127.0.0.1:5000');
       }
     },
   };
