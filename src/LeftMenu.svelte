@@ -1,7 +1,23 @@
 <script>
     export let selectedPageIndex;
     import LogoMenu from "./components/LogoMenu.svelte";
+    import { createEventDispatcher } from 'svelte';
 
+    const dispatch = createEventDispatcher();
+
+    function handleInitialsClick() {      
+      dispatch('initialsClicked');
+    }
+    function handleSignClick() {      
+      dispatch('signClicked');
+    }
+
+    function handleEmailClick() {      
+      dispatch('emailClicked');
+    }
+    function handleNameClick() {      
+      dispatch('nameClicked');
+    }
     let menu= true;
     
   </script>
@@ -61,7 +77,7 @@
       border-radius: 50%;
       box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19); 
       cursor: pointer;
-      z-index: 99;
+      z-index: 8;
     }
     .icon_left{
       cursor: pointer;
@@ -74,7 +90,7 @@
             
         <span class="title">Tillsco<strong>Sign</strong> </span>
     </div>
-    <div class="menu-item active_item">
+    <div class="menu-item active_item" on:click={handleSignClick}>
         <i class="mr-4">
             <svg width="19" height="19" viewBox="0 0 19 19" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path fill-rule="evenodd" clip-rule="evenodd" d="M0 17.9474C0 17.3644 0.472593 16.8918 1.05556 16.8918H17.9444C18.5274 16.8918 19 17.3644 19 17.9474C19 18.5304 18.5274 19.003 17.9444 19.003H1.05556C0.472593 19.003 0 18.5304 0 17.9474Z" fill="#3BA83A"/>
@@ -84,7 +100,7 @@
         </i>
       <span>Signature</span>
     </div>
-    <div class="menu-item">
+    <div class="menu-item" on:click={handleInitialsClick}>
         <i class="mr-4">
             <svg width="23" height="13" viewBox="0 0 23 13" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M22.4031 4.33365C20.5409 4.45213 17.8842 6.1854 16.5396 6.75413C15.4935 7.19761 14.5911 7.58015 13.8038 7.58015C12.9914 7.58015 12.8691 7.03173 13.0381 5.82318C13.0777 5.55235 13.4587 3.14203 11.503 3.24697C10.6007 3.29775 9.19145 4.08652 5.40951 7.51244L6.90143 4.00189C7.99431 1.43245 4.98889 -1.12683 2.23871 0.521809L0.265055 1.77098C-0.000975466 1.93009 -0.0800656 2.26523 0.0888996 2.51913L0.70724 3.43316C0.876206 3.68706 1.23211 3.76153 1.50174 3.59904L3.58684 2.28216C4.24832 1.88608 5.05001 2.5259 4.76241 3.19958L1.23211 11.5139C0.987651 12.086 1.32918 13 2.29983 13C2.59821 13 2.893 12.8917 3.1123 12.6818C4.62939 11.2532 8.67377 7.58015 10.7049 6.05338C10.6259 7.01819 10.6295 8.04732 11.4455 8.89025C11.9956 9.45898 12.7865 9.74673 13.8002 9.74673C15.0801 9.74673 16.2449 9.25248 17.4779 8.73114C18.6643 8.23012 21.037 6.61195 22.4534 6.50362C22.759 6.47993 22.9999 6.2565 22.9999 5.96875V4.88207C23.0071 4.57401 22.7302 4.31334 22.4031 4.33365Z" fill="#BCBCBC"/>
@@ -118,11 +134,11 @@
         </i>
       <span>Other Details</span>
     </div>
-    <div class="menu-item">
+    <div class="menu-item" on:click={handleNameClick}>
         <i class="mr-4"></i>
       <span>Name</span>
     </div>
-    <div class="menu-item">
+    <div class="menu-item" on:click={handleEmailClick}>
         <i class="mr-4"></i>
       <span>Email</span>
     </div>

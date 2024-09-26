@@ -14,14 +14,14 @@
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            "username": 'sean_bean@gameofthron.es',
-            "password": '123456789'
+            "username": email,
+          "password": password
           })
         });
   
         // if (response.ok) {
           dispatch('login', {
-          "username": "john.doe",
+          "username": email,
           "password": password
         });
         // } else {

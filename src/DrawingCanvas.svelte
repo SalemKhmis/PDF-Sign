@@ -1,6 +1,7 @@
 <script>
   import { createEventDispatcher } from "svelte";
   import { pannable } from "./utils/pannable.js";
+  
   const dispatch = createEventDispatcher();
   let canvas;
   let x = 0;
@@ -12,6 +13,7 @@
   let maxY = 0;
   let paths = [];
   let drawing = false;
+  
   function handlePanStart(event) {
     if (event.detail.target !== canvas) {
       return (drawing = false);
@@ -26,6 +28,7 @@
     paths.push(["M", x, y]);
     path += `M${x},${y}`;
   }
+
   function handlePanMove(event) {
     if (!drawing) return;
     x = event.detail.x;
@@ -37,15 +40,18 @@
     paths.push(["L", x, y]);
     path += `L${x},${y}`;
   }
+
   function handlePanEnd() {
     drawing = false;
   }
+
   function finish() {
     if (!paths.length) return;
     const dx = -(minX - 10);
     const dy = -(minY - 10);
     const width = maxX - minX + 20;
     const height = maxY - minY + 20;
+
     dispatch("finish", {
       originWidth: width,
       originHeight: height,
@@ -54,6 +60,7 @@
       }, "")
     });
   }
+
   function cancel() {
     dispatch("cancel");
   }
@@ -82,7 +89,7 @@
   </div>
   <svg class="w-full h-full pointer-events-none">
     <path
-      stroke-width="5"
+      stroke-width="2"
       stroke-linejoin="round"
       stroke-linecap="round"
       d={path}

@@ -9,7 +9,7 @@
   export let y;
   export let pageScale = 1;
   export let path;
-  export let text = "312B35C8C87C485";
+  export let text = localStorage.getItem("codeSign")
 
   const dispatch = createEventDispatcher();
   let startX;
