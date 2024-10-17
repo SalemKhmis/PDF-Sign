@@ -326,45 +326,28 @@
       addTextName();
     }}}/>
     <div
-      class="absolute z-10 top-0 left-0 right-0 h-12 flex justify-center items-center" style="border-style: hidden;margin-top: 25px;left: -10%;">
-      <!-- <input
-        type="file"
-        name="pdf"
-        id="pdf"
-        on:change={onUploadPDF}
-        class="hidden" />
-      <input
-        type="file"
-        id="image"
-        name="image"
-        class="hidden"
-        on:change={onUploadImage} />
-      <label
-        class="whitespace-no-wrap bg-blue-500 hover:bg-blue-700 text-white
-        font-bold py-1 px-3 md:px-4 rounded mr-3 cursor-pointer md:mr-4"
-        for="pdf">
-        Choose PDF
-      </label> -->
+      class="absolute z-10 top-0 left-0 right-0 h-12 flex justify-center items-center tab-menu" style="border-style: hidden;margin-top: 25px;text-align-last: center;  width: 80%;justify-self: right;
+    float: right;">
 
-      <div class="justify-center mr-3 w-full max-w-xs hidden md:flex block_name">
-        <!-- <img src="/edit.svg" class="mr-2" alt="a pen, edit pdf name" /> -->
+      <div class="justify-center mr-3 w-full max-w-xs  block_name">
         <input
           placeholder="File Name"
           type="text"
           class="flex-grow bg-transparent"
           bind:value={pdfName} />
       </div>
+      <div class="block_top2  h-12 flex justify-center items-center tab-menu">
       <button
         on:click={savePDF}
         class="w-20 bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-3
-        md:px-4 mr-3 md:mr-4 rounded"
+        md:px-4 mr-3 md:mr-4 rounded" style="background: #3ba83a!important;"
         class:cursor-not-allowed={pages.length === 0 || saving || !pdfFile}
         class:bg-blue-700={pages.length === 0 || saving || !pdfFile}>
         {saving ? 'Saving' : 'Save'}
       </button>
-      <div class="flex" style="background: white;
+      <div class="flex block-top" style="background: white;
       border-radius: 29px;">
-      <div
+      <!-- <div
       class="relative mr-3 flex rounded-sm overflow-hidden
       md:mr-4">
       <label
@@ -392,7 +375,7 @@
         class:bg-gray-500={selectedPageIndex < 0}>
         <img src="gesture.svg" alt="An icon for adding drawing" />
       </label>
-    </div>
+    </div> -->
 
         <div class="m-3"><svg width="16" height="17" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path fill-rule="evenodd" clip-rule="evenodd" d="M15.0013 0C15.5536 0 16.0013 0.44772 16.0013 1V6C16.0013 6.55228 15.5536 7 15.0013 7H10.0013C9.44904 7 9.00134 6.55228 9.00134 6C9.00134 5.44772 9.44904 5 10.0013 5H12.4751C10.622 2.92318 7.50684 2.35728 5.00133 3.80385C2.13158 5.4607 1.14833 9.1302 2.80518 12C4.46204 14.8698 8.13154 15.853 11.0013 14.1962C11.4796 13.92 12.0912 14.0839 12.3673 14.5622C12.6435 15.0405 12.4796 15.6521 12.0013 15.9282C8.17504 18.1373 3.28227 16.8263 1.07313 13C-1.13601 9.1737 0.174993 4.28093 4.00133 2.07179C7.35784 0.13391 11.5349 0.90478 14.0013 3.70614V1C14.0013 0.44772 14.449 0 15.0013 0Z" fill="#BCBCBC"/>
@@ -404,11 +387,9 @@
             </svg>
             
         </div>
-        <!-- <div style="height: 10px;border-right: solid 1px"></div> -->
         <div class="m-3">
           100%
         </div>
-        <!-- <div style="height: 10px;border-right: solid 1px"></div> -->
 
         <div class="m-3">
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -455,6 +436,7 @@
           {/if}
         </div>
       </div>
+      </div>
       <div>
 
       </div>
@@ -462,9 +444,9 @@
     {#if addingDrawing}
       <div
         transition:fly={{ y: -200, duration: 500 }}
-        class="fixed z-10 top-0 left-0 right-0 border-b border-gray-300 bg-white
+        class="fixed top-0 left-0 right-0 border-b border-gray-300 bg-white modal-sign
         shadow-lg"
-        style="height: 50%;">
+        style="z-index: 99;">
         <DrawingCanvas
           on:finish={e => {
             const { originWidth, originHeight, path } = e.detail;
@@ -479,15 +461,16 @@
       </div>
     {/if}
     {#if pages.length>1}
-      <div class="flex justify-center px-5 w-full md:hidden">
+      <!-- <div class="flex justify-center px-5 w-full md:hidden">
         <img src="/edit.svg" class="mr-2" alt="a pen, edit pdf name" />
         <input
           placeholder="Rename your PDF here"
           type="text"
           class="flex-grow bg-transparent"
           bind:value={pdfName} />
-      </div>
-      <div class="w-full mt-20">
+      </div> -->
+      <div class="w-full pages" style="    width: 80%;    margin-left: 20%;
+    float: right;">
         {#each pages as page, pIndex (page)}
           <div
             class="p-5 w-full flex flex-col items-center overflow-hidden"
@@ -547,7 +530,7 @@
         {/each}
       </div>
     {:else}
-    <div  class="w-full justify-center items-center choose_text" for="pdf">
+    <div  class="w-full justify-center items-center choose_text" style="    width: 80%;float: right;    margin-left: 20%;" for="pdf">
       <div class="flex-grow flex justify-center items-center">
         <input
         type="file"
@@ -580,17 +563,16 @@
 
     {/if}
     <RightMenu class="flex-shrink-0" />
-    <div style="display: none;">
-    <div class="sign-block"  style="height: 60px;width: 250px;">
+    <div class="sign-block"  style="height: 64px;width: 200px;position: absolute;
+    top: -70px;">
       <div class="css-12sxlyp ">
-        <span>Signé par&nbsp;:</span>
+        <span>Doc signed by:</span>
         <div class="css-fv3lde">
           <span class="css-po3aid" style="font-family: Mistral;">Salem Khmis</span>
           <div class="css-1j983t3">ds45sdf42sdf42sd</div>
         </div>
         
       </div>
-    </div>
     </div>
   </main>
   {/if}
@@ -601,6 +583,13 @@
 {/if}
 
 <style>
+  .modal-sign{
+    height: 65%;
+    /* z-index: 99;
+    width: 60%;
+    place-self: center;
+    border-radius: 15px; */
+  }
   .choose_text{
     background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' stroke='black' stroke-width='2' stroke-dasharray='20%2c 15' stroke-dashoffset='16' stroke-linecap='square'/%3e%3c/svg%3e");
     margin: 8% 5% 1% 8%;
@@ -643,7 +632,7 @@
     padding-inline-start: 25px;
     position: relative;
     text-align: start;
-    height: 50px;
+    height: 54px;
   }
 
   .css-12sxlyp::before {
@@ -654,17 +643,20 @@
     border-top: 2px solid rgb(0, 92, 185);
     content: "";
     display: block;
-    height: calc(100% - 8px);
+    height: 100%;
     inset-inline-start: 0px;
     position: absolute;
     width: 20px;
+    top: 7px;
   }
   .css-fv3lde {
     -webkit-box-align: center;
     align-items: center;
     display: flex;
     padding: 10px;
-    font-size: 24px;
+    margin-left: -18px;
+    font-size: 26px;
+    padding-top: 5px;
   }
   .css-1j983t3 {
     position: absolute;
@@ -676,4 +668,36 @@
   .css-1achfvd:nth-of-type(2n+1) {
     background-color: rgb(249, 249, 249);
 }
+.resize-corner.svelte-y5b9ho {
+      width: 1rem!important;
+      height: 1rem!important;
+      background-color: #3CA939!important;
+  }
+@media (max-width: 768px) {
+  .top_right{
+    display: none;
+  }
+  .choose_text, .pages{
+    margin-top: 108px;
+  }
+}
+@media (max-width: 600px) {
+    .tab-menu{
+      justify-content: right!important;
+    }
+    .block-top{
+      font-size: 11px;
+    }
+    .block-top svg{
+      width: 10px!important;
+    }
+    .block_name{
+      margin-top: 70px;
+      font-size: 14px;
+    }
+    .block_top2{
+      position: absolute;
+    }
+
+  }
 </style>

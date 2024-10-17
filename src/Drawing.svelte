@@ -92,6 +92,17 @@
   .operation {
     background-color: rgba(0, 0, 0, 0.1);
   }
+  @media (max-width: 768px) {
+  .resize-corner {
+        width: 1rem!important;
+        height: 1rem!important;
+        background-color: #3CA939!important;
+    }
+    .delete-icon{
+      width: 8%!important;
+      height: auto!important;
+    }
+  }
 </style>
 
 <svelte:options immutable={true} />
@@ -108,14 +119,14 @@
     class:operation>
     <div
       data-direction="left-top"
-      class="absolute left-0 top-0 w-10 h-10 bg-green-400 rounded-full cursor-nwse-resize transform -translate-x-1/2 -translate-y-1/2 md:scale-25" />
+      class="absolute resize-corner left-0 top-0 w-10 h-10 bg-green-400 rounded-full cursor-nwse-resize transform -translate-x-1/2 -translate-y-1/2 md:scale-25" />
     <div
       data-direction="right-bottom"
-      class="absolute right-0 bottom-0 w-10 h-10 bg-green-400 rounded-full cursor-nwse-resize transform translate-x-1/2 translate-y-1/2 md:scale-25" />
+      class="absolute resize-corner right-0 bottom-0 w-10 h-10 bg-green-400 rounded-full cursor-nwse-resize transform translate-x-1/2 translate-y-1/2 md:scale-25" />
   </div>
   <div
     on:click={onDelete}
-    class="absolute left-0 top-0 right-0 w-12 h-12 m-auto rounded-full bg-white cursor-pointer transform -translate-y-1/2 md:scale-25">
+    class="absolute left-0 top-0 right-0 w-12 h-12 m-auto rounded-full bg-white cursor-pointer transform -translate-y-1/2 md:scale-25 delete-icon">
     <img class="w-full h-full" src="/delete.svg" alt="delete object" />
   </div>
   <svg bind:this={svg} width="100%" height="100%">

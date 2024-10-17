@@ -185,6 +185,21 @@
   .resize-corner {
     @apply absolute w-10 h-10 bg-blue-300 rounded-full;
   }
+  @media (max-width: 768px) {
+    .resize-corner {
+        width: 1rem!important;
+        height: 1rem!important;
+        background-color: #3CA939!important;
+    }
+    .delete-icon{
+      width: 8%!important;
+      height: auto!important;
+    }
+    .select-none{
+      width: 200px;
+      height: 64px;
+    }
+  }
 </style>
 
 <svelte:options immutable={true} />
@@ -233,7 +248,7 @@
   <div
     on:click={onDelete}
     class="absolute left-0 top-0 right-0 w-12 h-12 m-auto rounded-full bg-white
-    cursor-pointer transform -translate-y-1/2 md:scale-25">
+    cursor-pointer transform -translate-y-1/2 md:scale-25 delete-icon">
     <img class="w-full h-full" src="/delete.svg" alt="delete object" />
   </div>
   <canvas class="w-full h-full" bind:this={canvas} />

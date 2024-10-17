@@ -42,6 +42,11 @@
       font-size: 24px;
       color: #7D7E7E;
     }
+    @media (max-width: 600px) {
+      .right-menu{
+        display: none!important;
+      }
+    }
   </style>
   
   <div class="right-menu">

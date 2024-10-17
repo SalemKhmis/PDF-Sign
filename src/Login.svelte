@@ -8,16 +8,16 @@
   
     async function handleSubmit() {
       if (email && password) {
-        const response = await fetch('http://127.0.0.1:5000/auth/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            "username": email,
-          "password": password
-          })
-        });
+        // const response = await fetch('http://127.0.0.1:5000/auth/login', {
+        //   method: 'POST',
+        //   headers: {
+        //     'Content-Type': 'application/json'
+        //   },
+        //   body: JSON.stringify({
+        //     "username": email,
+        //   "password": password
+        //   })
+        // });
   
         // if (response.ok) {
           dispatch('login', {
@@ -38,7 +38,7 @@
   </script>
   
   <main class="container">
-    <div style="text-align: center; width: 33%;">
+    <div class="content">
       <div class="menu-item">
         <LogoMenu />
         <span class="title">Tillsco<strong>Sign</strong> </span>
@@ -73,6 +73,12 @@
       max-width: 100%;
     }
   
+    .content {
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+  
     .create_account {
       font-size: 11px;
       text-decoration: underline;
@@ -83,10 +89,11 @@
   
     .login-box {
       background-color: white;
-      padding: 2rem 5rem 3rem 5rem;
+      padding: 2rem;
       border-radius: 8px;
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
       text-align: center;
+      margin-top: 20px;
     }
   
     h1 {
@@ -143,11 +150,29 @@
       border-radius: 30px;
       padding: 5px 5px 5px 13px;
       color: #707070;
-      place-content: center;
+      justify-content: center;
     }
   
-    .menu-item img {
-      margin-right: 0.5rem;
+    @media (max-width: 768px) {
+      .login-box {
+        padding: 1.5rem;
+      }
+  
+      .menu-item {
+        margin-bottom: 10px;
+      }
+  
+      .title {
+        font-size: 20px;
+      }
+  
+      .login-button {
+        padding: 0.6rem;
+      }
+  
+      .create_account {
+        font-size: 10px;
+      }
     }
   </style>
   
