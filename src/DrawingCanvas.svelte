@@ -75,7 +75,9 @@
       originHeight: height,
       path: paths.reduce((acc, cur) => {
         return acc + cur[0] + (cur[1] + dx) + "," + (cur[2] + dy);
-      }, "")
+      }, ""),
+      strokeColor, // Include stroke color
+      strokeWidth  // Include stroke width
     });
   }
 
@@ -120,7 +122,15 @@
     }
   }
 
-  // Other functions like setStrokeWidth, setStrokeColor, and setView remain unchanged
+  // Change stroke width
+  function setStrokeWidth(size) {
+    strokeWidth = size;
+  }
+
+  // Change stroke color
+  function setStrokeColor(color) {
+    strokeColor = color;
+  }
   function setView(value) {
     view = value;
   }
@@ -231,7 +241,7 @@
       <img src={uploadedImageUrl} alt="Uploaded Signature" class="uploaded-image" />
     </div>
   {/if}
-  <div class="flex"> 
+  <div class="flex" style="margin: 5%;"> 
     <button on:click={finish} class="done-btn">Choose Signature</button>
       <div class="actions">
         <button on:click={cancel} class="cancel-btn">Cancel</button>
@@ -295,7 +305,7 @@
   }
   .view2{
     background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' stroke='black' stroke-width='2' stroke-dasharray='20%2c 15' stroke-dashoffset='16' stroke-linecap='square'/%3e%3c/svg%3e");
-    margin: 3% 5% 3% 5%;
+    margin: 6%;
     color: #878A93;
     cursor: pointer;
     height: 30vh;

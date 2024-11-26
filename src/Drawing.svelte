@@ -2,6 +2,7 @@
   import { onMount, createEventDispatcher } from "svelte";
   import { pannable } from "./utils/pannable.js";
   import { readAsArrayBuffer } from "./utils/asyncReader.js";
+
   export let originWidth;
   export let originHeight;
   export let width;
@@ -9,7 +10,9 @@
   export let y;
   export let pageScale = 1;
   export let path;
-  export let text = localStorage.getItem("codeSign")
+  export let strokeColor = "black"; // Default stroke color
+  export let strokeWidth = 5; // Default stroke width
+  export let text = "5dS6dsMLc56a6kM7";
 
   const dispatch = createEventDispatcher();
   let startX;
@@ -107,8 +110,8 @@
 
 <svelte:options immutable={true} />
 <div
-  class="absolute left-0 top-0 select-none"
-  style="width: {width + dw}px; height: {(width + dw) / ratio}px; transform: translate({x + dx}px, {y + dy}px);">
+  class=" left-0 top-0 select-none"
+  style="width: {width + dw}px; height: {(width + dw) / ratio}px; transform: translate({x + dx}px, {y + dy}px);position: relative;">
   <div
     use:pannable
     on:panstart={handlePanStart}
@@ -131,10 +134,10 @@
   </div>
   <svg bind:this={svg} width="100%" height="100%">
     <path
-      stroke-width="5"
+      stroke-width={strokeWidth} 
       stroke-linejoin="round"
       stroke-linecap="round"
-      stroke="black"
+      stroke={strokeColor}
       fill="none"
       d={path} />
   </svg>

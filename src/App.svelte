@@ -62,34 +62,155 @@
     const htmlElement = document.querySelector(".sign-block");
     addHtmlBlockAsImage(htmlElement);
   }
-  async function onUploadPDF(e) {
-    const files = e.target.files || (e.dataTransfer && e.dataTransfer.files);
-    const file = files[0];
-    if (!file || file.type !== "application/pdf") return;
-    selectedPageIndex = -1;
-    try {
-      await addPDF(file);
-      selectedPageIndex = 0;
-    } catch (e) {
-      console.log(e);
+  // async function onUploadPDF(e) {
+  //   const files = e.target.files || (e.dataTransfer && e.dataTransfer.files);
+  //   const file = files[0];
+  //   if (!file || file.type !== "application/pdf") return;
+  //   selectedPageIndex = -1;
+  //   try {
+  //     await addPDF(file);
+  //     selectedPageIndex = 0;
+  //   } catch (e) {
+  //     console.log(e);
+  //   }
+  // }
+  // async function addPDF(file) {
+  //   try {
+  //     const pdf = await readAsPDF(file);
+  //     pdfName = file.name;
+  //     pdfFile = file;
+  //     const numPages = pdf.numPages;
+  //     pages = Array(numPages)
+  //       .fill()
+  //       .map((_, i) => pdf.getPage(i + 1));
+  //     allObjects = pages.map(() => []);
+  //     pagesScale = Array(numPages).fill(1);
+  //   } catch (e) {
+  //     console.log("Failed to add pdf.");
+  //     throw e;
+  //   }
+  // }
+  let countFile=0;
+  async function onUploadFile(e) {
+    countFile=0;
+  const files = e.target.files || (e.dataTransfer && e.dataTransfer.files);
+  const file = files[0];
+  if (!file) {return} else { countFile=1};
+
+  try {
+    if (file.type === "application/pdf") {
+      await addPDF(file); // Existing PDF handling logic
+    } else if (file.type.includes("word")) {
+      await addWordFile(file); // New Word file handling
+    } else if (file.type.includes("powerpoint")) {
+      await addPowerPointFile(file); // New PowerPoint file handling
+    } else {
+      onUploadImage(e)
     }
+  } catch (e) {
+    console.log(e);
   }
-  async function addPDF(file) {
-    try {
-      const pdf = await readAsPDF(file);
-      pdfName = file.name;
-      pdfFile = file;
-      const numPages = pdf.numPages;
-      pages = Array(numPages)
-        .fill()
-        .map((_, i) => pdf.getPage(i + 1));
-      allObjects = pages.map(() => []);
-      pagesScale = Array(numPages).fill(1);
-    } catch (e) {
-      console.log("Failed to add pdf.");
-      throw e;
-    }
+}
+
+async function addPDF(file) {
+  try {
+    const pdf = await readAsPDF(file);
+    pdfName = file.name;
+    pdfFile = file;
+    const numPages = pdf.numPages;
+    pages = Array(numPages)
+      .fill()
+      .map((_, i) => pdf.getPage(i + 1));
+    allObjects = pages.map(() => []);
+    pagesScale = Array(numPages).fill(1);
+  } catch (e) {
+    console.log("Failed to add pdf.");
+    throw e;
   }
+}
+// import mammoth from '/path-to-your-public-folder/mammoth.browser.js';
+  
+  async function addWordFile(file) {
+    // const reader = new FileReader();
+  
+    // reader.onload = async function(event) {
+    //   const arrayBuffer = event.target.result;
+
+    //   // Convert Word (.docx) to HTML using Mammoth
+    //   const { value: html } = await mammoth.convertToHtml({ arrayBuffer });
+
+    //   // Create a canvas and render the HTML as an image
+    //   renderHTMLToCanvas(html);
+    // };
+  
+    // reader.readAsArrayBuffer(file);
+  }
+function renderHTMLToCanvas(htmlContent) {
+  // Use DOMParser to convert HTML string into a DOM
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(htmlContent, 'text/html');
+  
+  // Convert the HTML content to an image that can be drawn on canvas
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+
+  // Example: Drawing text onto the canvas, in this case, you can customize rendering
+  context.font = '16px Arial';
+  context.fillText(doc.body.textContent, 10, 50);
+
+  // If you want to support more complex HTML content, consider using a library like html2canvas
+}
+
+import PptxGenJS from 'pptxgenjs';
+
+async function addPowerPointFile(file) {
+  const reader = new FileReader();
+  
+  reader.onload = async function(event) {
+    const arrayBuffer = event.target.result;
+
+    // Create a new presentation from the file
+    const pptx = new PptxGenJS();
+    await pptx.load(arrayBuffer);
+    
+    // Loop through each slide and render it as an image on the canvas
+    pptx.slides.forEach((slide, index) => {
+      const imgDataUrl = slide.toDataURL(); // Convert slide to image data URL
+      renderImageToCanvas(imgDataUrl, index);
+    });
+  };
+  
+  reader.readAsArrayBuffer(file);
+}
+
+function renderImageToCanvas(imageDataUrl, index) {
+  const img = new Image();
+  
+  img.onload = function() {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    
+    // Set canvas dimensions to match the image
+    canvas.width = img.width;
+    canvas.height = img.height;
+    
+    // Draw the image onto the canvas
+    context.drawImage(img, 0, 0);
+    
+    document.body.appendChild(canvas); // Append canvas to DOM or handle it as needed
+  };
+  
+  img.src = imageDataUrl;
+}
+
+function handleImage(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    images = [...images, { src: reader.result }];
+  };
+  reader.readAsDataURL(file);
+}
+
   async function onUploadImage(e) {
     const file = e.target.files[0];
     if (file && selectedPageIndex >= 0) {
@@ -185,7 +306,27 @@
       addingDrawing = true;
     }
   }
-  function addDrawing(originWidth, originHeight, path, scale = 1) {
+//   function addDrawing(originWidth, originHeight, path, scale = 1) {
+//   const id = genID();
+//   const object = {
+//     id,
+//     path,
+//     type: "drawing",
+//     x: 0,
+//     y: 0,
+//     originWidth,
+//     originHeight,
+//     width: originWidth * scale,
+//     scale,
+//     text: '6ZDsd6'
+//   };
+//   allObjects = allObjects.map((objects, pIndex) =>
+//     pIndex === selectedPageIndex ? [...objects, object] : objects
+//   );
+// }
+
+function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, strokeWidth) {
+  console.log('strokeWidth: ',strokeWidth);
   const id = genID();
   const object = {
     id,
@@ -197,7 +338,9 @@
     originHeight,
     width: originWidth * scale,
     scale,
-    text: localStorage.getItem("codeSign")
+    strokeColor,  // New field
+    strokeWidth,  // New field
+    text: '6ZDsd6'
   };
   allObjects = allObjects.map((objects, pIndex) =>
     pIndex === selectedPageIndex ? [...objects, object] : objects
@@ -305,7 +448,7 @@
 <svelte:window
   on:dragenter|preventDefault
   on:dragover|preventDefault
-  on:drop|preventDefault={onUploadPDF} />
+  on:drop|preventDefault={onUploadFile} />
 <Tailwind />
 {#if authenticated}
 
@@ -440,7 +583,9 @@
       <div>
 
       </div>
+      
     </div>
+
     {#if addingDrawing}
       <div
         transition:fly={{ y: -200, duration: 500 }}
@@ -449,119 +594,108 @@
         style="z-index: 99;">
         <DrawingCanvas
           on:finish={e => {
-            const { originWidth, originHeight, path } = e.detail;
+            const { originWidth, originHeight, path ,strokeColor, strokeWidth,} = e.detail;
             let scale = 1;
             if (originWidth > 500) {
               scale = 500 / originWidth;
             }
-            addDrawing(originWidth, originHeight, path, scale);
+            addDrawing(originWidth, originHeight, path, scale,strokeColor,strokeWidth);
             addingDrawing = false;
           }}
           on:cancel={() => (addingDrawing = false)} />
       </div>
     {/if}
-    {#if pages.length>1}
-      <!-- <div class="flex justify-center px-5 w-full md:hidden">
-        <img src="/edit.svg" class="mr-2" alt="a pen, edit pdf name" />
-        <input
-          placeholder="Rename your PDF here"
-          type="text"
-          class="flex-grow bg-transparent"
-          bind:value={pdfName} />
-      </div> -->
-      <div class="w-full pages" style="    width: 80%;    margin-left: 20%;
-    float: right;">
-        {#each pages as page, pIndex (page)}
+    {#if pages.length > 0&&countFile==1} 
+    <div class="w-full pages" style="width: 80%; margin-left: 20%; margin-top: 10%; float: right;">
+      <div class="flex-grow flex justify-center items-center">
+        <input type="file" name="file" id="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.pptm,.opt" on:change={onUploadFile} class="hidden" />
+        <label class="font-bold otherFile" for="file">
+          <div class="mr-2">
+            <svg width="25" height="25" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M31.6667 21V42" stroke="#878A93" stroke-width="3" stroke-linecap="round"/>
+              <path d="M42 31.6665L21 31.6665" stroke="#878A93" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="32" cy="32" r="31" stroke="#878A93" stroke-width="2"/>
+            </svg>
+          </div>
+          Add image
+        </label>
+      </div>
+      {#each pages as page, pIndex (page)}
+        <div
+          class="p-5 w-full flex flex-col items-center overflow-hidden"
+          on:mousedown={() => selectPage(pIndex)}
+          on:touchstart={() => selectPage(pIndex)}>
           <div
-            class="p-5 w-full flex flex-col items-center overflow-hidden"
-            on:mousedown={() => selectPage(pIndex)}
-            on:touchstart={() => selectPage(pIndex)}>
+            class="relative shadow-lg"
+            class:shadow-outline={pIndex === selectedPageIndex}>
+            <PDFPage
+              on:measure={e => onMeasure(e.detail.scale, pIndex)}
+              {page} />
             <div
-              class="relative shadow-lg"
-              class:shadow-outline={pIndex === selectedPageIndex}>
-              <PDFPage
-                on:measure={e => onMeasure(e.detail.scale, pIndex)}
-                {page} />
-              <div
-                class="absolute top-0 left-0 transform origin-top-left"
-                style="transform: scale({pagesScale[pIndex]}); touch-action: none;">
-
-                {#each allObjects[pIndex] as object (object.id)}
-                  {#if object.type === 'image'}
-                    <Image
-                      on:update={e => updateObject(object.id, e.detail)}
-                      on:delete={() => deleteObject(object.id)}
-                      file={object.file}
-                      payload={object.payload}
-                      x={object.x}
-                      y={object.y}
-                      width={object.width}
-                      height={object.height}
-                      pageScale={pagesScale[pIndex]} />
-                  {:else if object.type === 'text'}
-                    <Text
-                      on:update={e => updateObject(object.id, e.detail)}
-                      on:delete={() => deleteObject(object.id)}
-                      on:selectFont={selectFontFamily}
-                      text={object.text}
-                      x={object.x}
-                      y={object.y}
-                      size={object.size}
-                      lineHeight={object.lineHeight}
-                      fontFamily={object.fontFamily}
-                      pageScale={pagesScale[pIndex]} />
-                  {:else if object.type === 'drawing'}
-                    <Drawing
-                      on:update={e => updateObject(object.id, e.detail)}
-                      on:delete={() => deleteObject(object.id)}
-                      path={object.path}
-                      x={object.x}
-                      y={object.y}
-                      width={object.width}
-                      originWidth={object.originWidth}
-                      originHeight={object.originHeight}
-                      pageScale={pagesScale[pIndex]}
-                      text={object.text} />
-                  {/if}
-                {/each}
-              </div>
+              class="absolute bottom-0 right-0"
+              style="transform: scale({pagesScale[pIndex]}); touch-action: none;">
+              {#each allObjects[pIndex] as object (object.id)}
+                {#if object.type === 'image'}
+                  <Image
+                    on:update={e => updateObject(object.id, e.detail)}
+                    on:delete={() => deleteObject(object.id)}
+                    file={object.file}
+                    payload={object.payload}
+                    x={object.x}
+                    y={object.y}
+                    width={object.width}
+                    height={object.height}
+                    pageScale={pagesScale[pIndex]} />
+                {:else if object.type === 'text'}
+                  <Text
+                    on:update={e => updateObject(object.id, e.detail)}
+                    on:delete={() => deleteObject(object.id)}
+                    on:selectFont={selectFontFamily}
+                    text={object.text}
+                    x={object.x}
+                    y={object.y}
+                    size={object.size}
+                    lineHeight={object.lineHeight}
+                    fontFamily={object.fontFamily}
+                    pageScale={pagesScale[pIndex]} />
+                {:else if object.type === 'drawing'}
+                  <Drawing
+                    on:update={e => updateObject(object.id, e.detail)}
+                    on:delete={() => deleteObject(object.id)}
+                    path={object.path}
+                    x={object.x}
+                    y={object.y}
+                    width={object.width}
+                    originWidth={object.originWidth}
+                    originHeight={object.originHeight}
+                    strokeColor={object.strokeColor}
+                    strokeWidth={object.strokeWidth}  
+                    pageScale={pagesScale[pIndex]} />
+                {/if}
+              {/each}
             </div>
           </div>
-        {/each}
-      </div>
-    {:else}
-    <div  class="w-full justify-center items-center choose_text" style="    width: 80%;float: right;    margin-left: 20%;" for="pdf">
-      <div class="flex-grow flex justify-center items-center">
-        <input
-        type="file"
-        name="pdf"
-        id="pdf"
-        on:change={onUploadPDF}
-        class="hidden" />
-      <input
-        type="file"
-        id="image"
-        name="image"
-        class="hidden"
-        on:change={onUploadImage} />
-      <label
-        class="font-bold text-3xl" style="cursor: pointer;"
-        for="pdf">
-        Choose File
-        <br>
-        <div>
-          <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M31.6667 21V42" stroke="#878A93" stroke-width="3" stroke-linecap="round"/>
-            <path d="M42 31.6665L21 31.6665" stroke="#878A93" stroke-width="3" stroke-linecap="round"/>
-            <circle cx="32" cy="32" r="31" stroke="#878A93" stroke-width="2"/>
-            </svg>
         </div>
-      </label>
-      </div>
-
+      {/each}
     </div>
-
-    {/if}
+  {:else}
+    <div class="w-full justify-center items-center choose_text" style="width: 80%; float: right; margin-left: 20%;" for="file">
+      <div class="flex-grow flex justify-center items-center">
+        <input type="file" name="file" id="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.pptm,.opt" on:change={onUploadFile} class="hidden" />
+        <label class="font-bold text-3xl" style="cursor: pointer;" for="file">
+          Choose File
+          <br>
+          <div>
+            <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M31.6667 21V42" stroke="#878A93" stroke-width="3" stroke-linecap="round"/>
+              <path d="M42 31.6665L21 31.6665" stroke="#878A93" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="32" cy="32" r="31" stroke="#878A93" stroke-width="2"/>
+            </svg>
+          </div>
+        </label>
+      </div>
+    </div>
+  {/if}
     <RightMenu class="flex-shrink-0" />
     <div class="sign-block"  style="height: 64px;width: 200px;position: absolute;
     top: -70px;">
@@ -589,6 +723,16 @@
     width: 60%;
     place-self: center;
     border-radius: 15px; */
+  }
+  .otherFile{
+    cursor: pointer;
+    display: flex;
+    font-size: 15px;
+    color: #878A93;
+    align-items: center;
+    border: solid 1px;
+    padding: 4px 20px;
+    border-radius: 10px;
   }
   .choose_text{
     background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' stroke='black' stroke-width='2' stroke-dasharray='20%2c 15' stroke-dashoffset='16' stroke-linecap='square'/%3e%3c/svg%3e");
@@ -698,6 +842,11 @@
     .block_top2{
       position: absolute;
     }
+
+    .otherFile{
+      margin-top: 20%;
+      zoom: 0.7;
+  }
 
   }
 </style>

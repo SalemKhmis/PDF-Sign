@@ -229,8 +229,8 @@
 <div
   use:tapout
   on:tapout={onBlur}
-  class="absolute left-0 top-0 select-none"
-  style="transform: translate({x + dx}px, {y + dy}px);">
+  class="left-0 top-0 select-none"
+  style="transform: translate({x + dx}px, {y + dy}px);position: relative;">
   <div
     use:pannable
     on:panstart={handlePanStart}
