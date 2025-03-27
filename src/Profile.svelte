@@ -6,9 +6,9 @@
   import { save } from "./utils/PDF.js";
   import html2canvas from "html2canvas";
 
-  let email = "salemkhmis003@gmail.com";
-  let paraphe = "SK"
-  let username = "Salem Khmis";
+  let email =  localStorage.getItem("email")? localStorage.getItem("email") : "salemkhmis003@gmail.com";
+  let paraphe =  localStorage.getItem("initial")? localStorage.getItem("initial") : "SK"
+  let username = localStorage.getItem("username")? localStorage.getItem("username") :"Salem Khmis";
   let path = localStorage.getItem("path");
   let addingDrawing = false;
   const genID = ggID();
@@ -80,7 +80,18 @@
       localStorage.setItem("path", path);
       localStorage.setItem("font", selectedValue);
       localStorage.setItem("codeSign", code);
+      localStorage.setItem("initial", paraphe);
+
       alert("Registration successful!");
+      dispatch("goToHome");
+
+      // dispatch("goToHome", {
+      //   "username": username,
+      //   "email": email,
+      //   "codeSign": code,
+      //   "initial": paraphe,
+      //   "font": selectedValue,
+      // });
       //         const response = await fetch('http://127.0.0.1:5000/auth/register', {
       //           method: 'POST',
       //           headers: {
@@ -110,6 +121,7 @@
 
   function goToHome() {
     dispatch("goToHome");
+
   }
   function onAddDrawing() {
     addingDrawing = true;
@@ -163,7 +175,7 @@
             <label for="postal">Postal code</label>
             <input id="postal" type="number" placeholder="Postal code" />
           </div> -->
-        <div class="input-group">
+        <!-- <div class="input-group">
           <label >Signature</label>
           <div class="block_sign">
             <svg width="100%" height="100%" viewBox="0 0 783 102"
@@ -177,7 +189,7 @@
               ></path></svg
             >
           </div>
-        </div>
+        </div> -->
         <div class="actions" style="text-align: right;">
           <button
             type="button"

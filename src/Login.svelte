@@ -1,11 +1,26 @@
 <script>
     import { createEventDispatcher } from 'svelte';
     import LogoMenu from "./components/LogoMenu.svelte";
-  
+    import { onMount } from 'svelte';
+
     let email = '';
     let password = '';
     const dispatch = createEventDispatcher();
-  
+    let session;
+
+    onMount(() => {
+      // Retrieve the session from localStorage
+      session = localStorage.getItem("session");
+
+      // If a session exists, dispatch the 'login' event
+      if (session) {
+        dispatch('login', {
+          username: email, // Replace `email` with the actual email value
+          password: password // Replace `password` with the actual password value
+        });
+      }
+    });
+
     async function handleSubmit() {
       if (email && password) {
         // const response = await fetch('http://127.0.0.1:5000/auth/login', {
@@ -20,10 +35,11 @@
         // });
   
         // if (response.ok) {
-          dispatch('login', {
-          "username": email,
-          "password": password
-        });
+        //   dispatch('login', {
+        //   "username": email,
+        //   "password": password
+        // });
+        localStorage.setItem("session", 'session');
         // } else {
         //   alert('Login failed. Please check your credentials.');
         // }

@@ -12,9 +12,65 @@
   let minY = Infinity;
   let maxY = 0;
   let paths = [];
+
+  let canvas2;
+  let x2 = 0;
+  let y2 = 0;
+  let path2 = "";
+  let minX2 = Infinity;
+  let maxX2 = 0;
+  let minY2 = Infinity;
+  let maxY2 = 0;
+  let paths2 = [];
+
   let drawing = false;
   let strokeColor = "green"; // Default stroke color
   let strokeWidth = 2; // Default stroke width
+
+  // function getRelativePosition2(event, canvas) {
+  //   const rect = canvas.getBoundingClientRect();
+  //   return {
+  //     x: event.detail.x - rect.left,
+  //     y: event.detail.y - rect.top
+  //   };
+  // }
+  function handlePanStart2(event) {
+    if (event.detail.target !== canvas2) return (drawing = false);
+    drawing = true;
+    
+    const pos = getRelativePosition(event, canvas2);
+    x2 = pos.x;
+    y2 = pos.y;
+    
+    minX2 = Math.min(minX2, x2);
+    maxX2 = Math.max(maxX2, x2);
+    minY2 = Math.min(minY2, y2);
+    maxY2 = Math.max(maxY2, y2);
+    
+    paths2.push(["M", x2, y2]);
+    path2 += `M${x2},${y2}`;
+  }
+
+  function handlePanMove2(event) {
+    if (!drawing) return;
+    
+    const pos = getRelativePosition(event, canvas2);
+    x2 = pos.x;
+    y2 = pos.y;
+    
+    minX2 = Math.min(minX2, x2);
+    maxX2 = Math.max(maxX2, x2);
+    minY2 = Math.min(minY2, y2);
+    maxY2 = Math.max(maxY2, y2);
+    
+    paths2.push(["L", x2, y2]);
+    path2 += `L${x2},${y2}`;
+  }
+
+  function handlePanEnd2() {
+    drawing = false;
+  }
+
   
   // Utility function to get the correct coordinates
   function getRelativePosition(event, canvas) {
@@ -69,15 +125,17 @@
     const dy = -(minY - 10);
     const width = maxX - minX + 20;
     const height = maxY - minY + 20;
-
+    console.log("sign div clicked");
+    const htmlElement = document.querySelector(".sign-block");
+    const htmlElement2 = document.querySelector(".sign-block2");
     dispatch("finish", {
       originWidth: width,
       originHeight: height,
       path: paths.reduce((acc, cur) => {
         return acc + cur[0] + (cur[1] + dx) + "," + (cur[2] + dy);
       }, ""),
-      strokeColor, // Include stroke color
-      strokeWidth  // Include stroke width
+      strokeColor, 
+      strokeWidth,htmlElement,htmlElement2
     });
   }
 
@@ -154,10 +212,60 @@
     });
   }
 </script>
+{#if path}
+<div class="sign-block" style="height: 64px;width: 200px;    position: absolute;
+    top: -200px;">
+  <div class="css-12sxlyp ">
+    <span>  Signature manuelle :</span>
+    <div class="css-fv3lde" >
+      <svg class="w-full h-full pointer-events-none" 
+      xmlns="http://www.w3.org/2000/svg" 
+      viewBox="0 0 600 100" 
+      width="220" 
+      height="60">
+        <path
+          stroke-width={strokeWidth}
+          stroke-linejoin="round"
+          stroke-linecap="round"
+          d={path}
+          stroke={strokeColor}
+          fill="none" />
+      </svg>
+  <!-- Text element added below the signature -->
+  <div class="css-1j983t3">ds45sdf42sdf42sd</div>
+</div>
 
+</div>
+</div>
+
+<div class="sign-block2" style="height: 64px;width: 200px;    position: absolute;
+    top: -200px;">
+  <div class="css-12sxlyp ">
+    <span>  Initial manuelle :</span>
+    <div class="css-fv3lde" >
+      <svg class="w-full h-full pointer-events-none" 
+      xmlns="http://www.w3.org/2000/svg" 
+      viewBox="0 0 600 100" 
+      width="220" 
+      height="60">
+        <path
+          stroke-width={strokeWidth}
+          stroke-linejoin="round"
+          stroke-linecap="round"
+          d={path2}
+          stroke={strokeColor}
+          fill="none" />
+      </svg>
+  <!-- Text element added below the signature -->
+  <div class="css-1j983t3">ds45sdf42sdf42sd</div>
+</div>
+
+</div>
+</div>
+{/if}
 <div class="header_modal">
   <div class="flex title">
-    Custom Signature 
+    Signatue manuelle
     <div class="icon-close pointer" on:click={cancel}>X</div>
   </div>
   <div class="flex"> 
@@ -184,23 +292,60 @@
       <button class:active={strokeColor === 'red'} on:click={() => setStrokeColor('red')} class="color-btn red"></button>
     </div>
   </div>
-  <div bind:this={canvas}
-    use:pannable
-    on:panstart={handlePanStart}
-    on:panmove={handlePanMove}
-    on:panend={handlePanEnd}
-    class="relative w-full h-full select-none">
-  
-    <svg class="w-full h-full pointer-events-none">
-      <path
-        stroke-width={strokeWidth}
-        stroke-linejoin="round"
-        stroke-linecap="round"
-        d={path}
-        stroke={strokeColor}
-        fill="none" />
-    </svg>
+
+  <div style="display: flex;">
+    <div bind:this={canvas2}
+          use:pannable
+          on:panstart={handlePanStart2}
+          on:panmove={handlePanMove2}
+          on:panend={handlePanEnd2}
+          class="relative w-full h-full select-none" style="width: 45%;">
+        
+          <svg class="pointer-events-none" style="    height: 200px;
+           width: 100%;
+          border: solid 1px #3ca939;
+          border-radius: 10px;
+          margin: 21px 0px;">
+            <path
+              stroke-width={strokeWidth}
+              stroke-linejoin="round"
+              stroke-linecap="round"
+              d={path2}
+              stroke={strokeColor}
+              fill="none" />
+          </svg>
+        </div>
+
+        <div bind:this={canvas}
+        use:pannable
+        on:panstart={handlePanStart}
+        on:panmove={handlePanMove}
+        on:panend={handlePanEnd}
+        class="relative w-full h-full select-none" style="width: 45%;">
+
+        <svg class="pointer-events-none" style="    height: 200px;
+        width: 100%;
+        border: solid 1px #3ca939;
+        border-radius: 10px;
+        margin: 21px 5%;">
+          <path
+            stroke-width={strokeWidth}
+            stroke-linejoin="round"
+            stroke-linecap="round"
+            d={path}
+            stroke={strokeColor}
+            fill="none" />
+        </svg>
+
+      </div>
+
   </div>
+  <div style="display: flex;">
+    <div class="sign_title">Initial</div>
+    <div class="sign_title">Signature manuelle</div>
+  </div>
+
+
   
 
 <div class="flex"> 
@@ -296,7 +441,12 @@
     display: flex;
     justify-content: center;
   }
-
+.sign_title{
+  width: 47%;
+    text-align: center;
+    font-weight: bold;
+    color: #3ca939;
+}
   .uploaded-image {
     max-width: 100%;
     border: 1px solid #ddd;
@@ -430,4 +580,50 @@
     font-weight: 600;
     font-size: 18px;
   }
+
+  .css-12sxlyp {
+  background: none; /* Ensure no background */
+  border: none;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 11px;
+  min-width: 170px;
+  padding-inline-start: 46px;
+  position: relative;
+  text-align: start;
+  height: 54px;
+}
+
+.css-12sxlyp::before {
+  border-bottom: 2px solid rgb(0, 92, 185);
+    -webkit-border-start: 2px solid rgb(0, 92, 185);
+    border-inline-start: 2px solid rgb(0, 92, 185);
+    border-start-start-radius: 15px;
+    border-end-start-radius: 15px;
+    border-top: 2px solid rgb(0, 92, 185);
+    content: "";
+    display: block;
+    height: 100%;
+    inset-inline-start: 0px;
+    position: absolute;
+    width: 35px;
+    top: 7px;
+    background: none;
+}
+
+.css-fv3lde {
+  align-items: center;
+  display: flex;
+  padding: 0px 40px 4px 4px;  
+  margin-left: -18px;
+  font-size: 26px;
+}
+
+.css-1j983t3 {
+  position: absolute;
+  white-space: nowrap;
+  font-size: 11px;
+  bottom: 0px;
+  left: 46px;
+}
 </style>

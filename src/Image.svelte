@@ -206,7 +206,7 @@
 <div
   class="left-0 top-0 select-none"
   style="width: {width + dw}px; height: {height + dh}px; transform: translate({x + dx}px,
-  {y + dy}px);position: relative;">
+  {y + dy}px);position: absolute;">
 
   <div
     use:pannable

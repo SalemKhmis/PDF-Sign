@@ -1,3 +1,61 @@
+<!-- 
+<script>
+  import { onMount } from "svelte";
+  let file;
+
+  async function uploadFile() {
+    if (!file) {
+      alert("Please select a file");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetch("http://192.168.1.13:8000/api/convert-word-to-pdf", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to convert file");
+      }
+
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "converted.pdf";
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(error);
+      alert("An error occurred while converting the file");
+    }
+  }
+</script>
+
+<div>
+  <label>
+    Upload Word File:
+    <input type="file" accept=".doc, .docx" on:change="{(e) => (file = e.target.files[0])}" />
+  </label>
+  <button on:click="{uploadFile}">Upload and Convert</button>
+</div> -->
+
+<!-- <script>
+  import Portal from "./Portal.svelte";
+</script>
+
+<Portal>
+  <div class="fixed z-10 top-0 left-0 right-0 h-12">
+    <slot />
+  </div>
+</Portal> -->
+
 <script>
   import { onMount } from "svelte";
   import { fly } from "svelte/transition";
@@ -14,7 +72,6 @@
   import Register from './Register.svelte';
   import ProfilePage from './Profile.svelte';
   import html2canvas from "html2canvas";
-
 
   import {
     readAsArrayBuffer,
@@ -37,6 +94,17 @@
   let saving = false;
   let addingDrawing = false;
   let logoutMenu= false;
+  let detailsPage;
+  let showTicket=true;
+  let showTicketDate=true;
+
+  let username = localStorage.getItem("username");
+  let email = localStorage.getItem("email");
+  let codeSign = localStorage.getItem("codeSign");
+  let initial = localStorage.getItem("initial");
+  let font = localStorage.getItem("font");
+
+  
 
   // for test purpose
   onMount(async () => {
@@ -54,14 +122,21 @@
     }
   });
   function handleInitialsClick() {
+    console.log("ini div clicked");
+    const htmlElement = document.querySelector(".sign-block-two");
+    addHtmlBlockAsImage(htmlElement,'sign');
+  }
+  function handleSignClick() {
+    console.log("sign div clicked");
+
+    const htmlElement = document.querySelector(".sign-block");
+    addHtmlBlockAsImage(htmlElement,'sign');
+}
+function handleManuelleClick() {
     console.log("Initials div clicked");
     onAddDrawing();
   }
-  function handleSignlick() {
-    console.log("sign div clicked");
-    const htmlElement = document.querySelector(".sign-block");
-    addHtmlBlockAsImage(htmlElement);
-  }
+  
   // async function onUploadPDF(e) {
   //   const files = e.target.files || (e.dataTransfer && e.dataTransfer.files);
   //   const file = files[0];
@@ -92,28 +167,116 @@
   // }
   let countFile=0;
   async function onUploadFile(e) {
-    countFile=0;
+  countFile = 0;
   const files = e.target.files || (e.dataTransfer && e.dataTransfer.files);
   const file = files[0];
-  if (!file) {return} else { countFile=1};
+  if (!file) {
+    return;
+  } else {
+    countFile = 1;
+  }
 
   try {
     if (file.type === "application/pdf") {
-      await addPDF(file); // Existing PDF handling logic
-    } else if (file.type.includes("word")) {
-      await addWordFile(file); // New Word file handling
-    } else if (file.type.includes("powerpoint")) {
-      await addPowerPointFile(file); // New PowerPoint file handling
-    } else {
-      onUploadImage(e)
+      console.log("PDF file:", file);
+      await addPDF(file);
+    } else if (file.type.includes("word") || file.type.includes("powerpoint")|| file.type.includes("officedocument")) {
+      console.log("Word file detected, converting...");
+      const convertedFile = await convertWordToPdf(file);
+      console.log("Converted file:", convertedFile);
+      if (convertedFile) {
+        await addPDF(convertedFile);
+      }
     }
+    console.log({detailsPage});
+
   } catch (e) {
-    console.log(e);
+    console.error(e);
+    alert("An error occurred while processing the file");
   }
 }
 
+
+//   async function onUploadFile(e) {
+//     countFile=0;
+//   const files = e.target.files || (e.dataTransfer && e.dataTransfer.files);
+//   const file = files[0];
+//   if (!file) {return} else { countFile=1};
+
+//   try {
+//     // addPowerPointFile(file);
+//     if (file.type === "application/pdf") {
+//       console.log('pdfff');
+//       await addPDF(file); // Existing PDF handling logic
+//     } else if (file.type.includes("word")) {
+//       let convertedFile = convertWordToPdf(file);
+//       console.log('convertedFile ', convertedFile);
+
+//       await addPDF(convertedFile); 
+
+//       // await addWordFile(file); // New Word file handling
+//     } else if (file.type.includes("powerpoint")) {
+//       console.log('powerpoint');
+//       await addPowerPointFile(file); // New PowerPoint file handling
+//     } else {
+//       console.log('onUploadImage');
+      
+//       onUploadImage(e)
+//     }
+//   } catch (e) {
+//     console.log(e);
+//   }
+// }
+
+// this is convertWordToPdf function witch you sended to me
+async function convertWordToPdf(wordFile) {
+  const formData = new FormData();
+  formData.append("file", wordFile);
+
+  try {
+    const response = await fetch("http://192.168.1.12:8000/api/convert-word-to-pdf", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to convert file");
+    }
+
+    const blob = await response.blob();
+
+    // Create a new File object from the blob
+    const fileResponse = new File([blob], "converted.pdf", {
+      type: blob.type,
+    });
+
+    console.log("Converted file:", fileResponse);
+
+    // Optional: Validate the PDF structure by passing it through PDF.js
+    try {
+      await readAsPDF(fileResponse).then(res => setTimeout(() => {addTextDate()}
+    ));
+     
+      console.log("PDF is valid");
+    } catch (validationError) {
+      console.error("PDF validation failed:", validationError);
+      throw new Error("Invalid PDF structure");
+    }
+
+    return fileResponse;
+  } catch (error) {
+    console.error(error);
+    alert("An error occurred while converting the file");
+  }
+}
+
+let pageWidth;
+let pageHeight;
+
+// this is my old function addPDF 
 async function addPDF(file) {
   try {
+    
     const pdf = await readAsPDF(file);
     pdfName = file.name;
     pdfFile = file;
@@ -123,14 +286,19 @@ async function addPDF(file) {
       .map((_, i) => pdf.getPage(i + 1));
     allObjects = pages.map(() => []);
     pagesScale = Array(numPages).fill(1);
+    pageWidth = window.innerWidth;  
+    pageHeight = window.innerHeight;
+    setTimeout(() => {addTextDate()});
   } catch (e) {
     console.log("Failed to add pdf.");
     throw e;
   }
 }
+
+
 // import mammoth from '/path-to-your-public-folder/mammoth.browser.js';
   
-  async function addWordFile(file) {
+  // async function addWordFile(file) {
     // const reader = new FileReader();
   
     // reader.onload = async function(event) {
@@ -144,7 +312,73 @@ async function addPDF(file) {
     // };
   
     // reader.readAsArrayBuffer(file);
-  }
+  // }
+  // import mammoth from "mammoth";
+
+  async function addWordFile(file) {
+  // try {
+  //   const reader = new FileReader();
+
+  //   reader.onload = async function () {
+  //     const arrayBuffer = reader.result;
+
+  //     // Extract raw text from Word document
+  //     const { value: text } = await mammoth.extractRawText({ arrayBuffer });
+
+  //     // Create a paginated HTML container
+  //     const pagesContainer = document.createElement("div");
+  //     pagesContainer.style.width = "8.5in"; // Letter size width
+  //     pagesContainer.style.height = "11in"; // Letter size height
+  //     pagesContainer.style.overflow = "hidden";
+  //     pagesContainer.style.position = "absolute";
+  //     pagesContainer.style.visibility = "hidden";
+  //     pagesContainer.style.whiteSpace = "pre-wrap";
+  //     pagesContainer.style.fontFamily = "Arial, sans-serif";
+  //     pagesContainer.style.fontSize = "12pt";
+  //     pagesContainer.style.lineHeight = "1.5";
+  //     pagesContainer.style.padding = "1in"; // Simulate Word document margins
+
+  //     document.body.appendChild(pagesContainer);
+
+  //     // Add extracted text to the container
+  //     pagesContainer.textContent = text;
+
+  //     // Calculate page dimensions
+  //     const pageHeight = pagesContainer.offsetHeight;
+
+  //     // Convert each "page" to an image
+  //     const images = [];
+  //     const totalHeight = pagesContainer.scrollHeight;
+
+  //     for (let i = 0; i < Math.ceil(totalHeight / pageHeight); i++) {
+  //       pagesContainer.scrollTop = i * pageHeight;
+
+  //       const canvas = await html2canvas(pagesContainer, {
+  //         windowWidth: pagesContainer.offsetWidth,
+  //         windowHeight: pageHeight,
+  //         useCORS: true, // Ensure proper rendering for external resources
+  //       });
+
+  //       images.push(canvas.toDataURL("image/png"));
+  //     }
+
+  //     document.body.removeChild(pagesContainer);
+
+  //     // Use images as individual pages
+  //     console.log("Generated Images:", images);
+
+  //     const numPages = images.length;
+  //     pages = images; // Store the images as your "pages"
+  //     allObjects = Array(numPages).fill([]); // Initialize empty objects for each page
+  //     pagesScale = Array(numPages).fill(1); // Set scale for each page
+  //   };
+
+  //   reader.readAsArrayBuffer(file);
+  // } catch (e) {
+  //   console.error("Failed to add Word file:", e);
+  // }
+}
+
 function renderHTMLToCanvas(htmlContent) {
   // Use DOMParser to convert HTML string into a DOM
   const parser = new DOMParser();
@@ -161,28 +395,70 @@ function renderHTMLToCanvas(htmlContent) {
   // If you want to support more complex HTML content, consider using a library like html2canvas
 }
 
-import PptxGenJS from 'pptxgenjs';
+
+// async function addPowerPointFile(file) {
+//   const reader = new FileReader();
+  
+//   reader.onload = async function(event) {
+//     const arrayBuffer = event.target.result;
+
+//     // Create a new presentation from the file
+//     const pptx = new PptxGenJS();
+//     await pptx.load(arrayBuffer);
+    
+//     // Loop through each slide and render it as an image on the canvas
+//     pptx.slides.forEach((slide, index) => {
+//       const imgDataUrl = slide.toDataURL(); // Convert slide to image data URL
+//       renderImageToCanvas(imgDataUrl, index);
+//     });
+//   };
+  
+//   reader.readAsArrayBuffer(file);
+// }
 
 async function addPowerPointFile(file) {
-  const reader = new FileReader();
-  
-  reader.onload = async function(event) {
-    const arrayBuffer = event.target.result;
-
-    // Create a new presentation from the file
-    const pptx = new PptxGenJS();
-    await pptx.load(arrayBuffer);
+  // try {
+  //   const dataURL = await readAsDataURL(file);
     
-    // Loop through each slide and render it as an image on the canvas
-    pptx.slides.forEach((slide, index) => {
-      const imgDataUrl = slide.toDataURL(); // Convert slide to image data URL
-      renderImageToCanvas(imgDataUrl, index);
-    });
-  };
-  
-  reader.readAsArrayBuffer(file);
-}
+  //   // Convert the PowerPoint file to HTML
+  //   console.log("Data URL:", dataURL);
+  //   const slides = await pptx2html(dataURL);
+    
+  //   // Assuming slides is an array of image URLs or canvas elements
+  //   pages = await Promise.all(slides.map(async (slide) => {
+  //     // Create a canvas for each slide
+  //     const canvas = document.createElement('canvas');
+  //     const context = canvas.getContext('2d');
+      
+  //     // Load the slide image into the canvas
+  //     const img = new Image();
+  //     img.src = slide; // Assuming slide is a URL to the image
+      
+  //     return new Promise((resolve) => {
+  //       img.onload = () => {
+  //         canvas.width = img.width;
+  //         canvas.height = img.height;
+  //         context.drawImage(img, 0, 0);
+  //         resolve(canvas); // Resolve the promise with the canvas
+  //       };
+  //       img.onerror = (error) => {
+  //         console.error("Image loading error:", error);
+  //         resolve(null); // Resolve with null if there's an error
+  //       };
+  //     });
+  //   }));
 
+  //   // Filter out any null canvases in case of loading errors
+  //   pages = pages.filter(canvas => canvas !== null);
+
+  //   // Initialize allObjects for each page
+  //   allObjects = Array(pages.length).fill().map(() => []);
+    
+  // } catch (e) {
+  //   console.error("Failed to add PowerPoint file.", e);
+  //   throw e;
+  // }
+}
 function renderImageToCanvas(imageDataUrl, index) {
   const img = new Image();
   
@@ -265,12 +541,30 @@ function handleImage(file) {
       pIndex === selectedPageIndex ? [...objects, object] : objects
     );
   }
+  function addTextDate() {
+    const id = genID();
+    fetchFont(currentFont);
+    const object = {
+      id,
+      text: 'Signed with TilscoSign on ' +new Date().toISOString().split("T")[0]+ ' ID: ' + codeSign,
+      type: "text",
+      size: 11,
+      width: 0, // recalculate after editing
+      lineHeight: 1.4,
+      fontFamily: currentFont,
+      x: 20,
+      y: 5,
+    };
+    allObjects = allObjects.map((objects, pIndex) =>
+      pIndex === selectedPageIndex ? [...objects, object] : objects
+    );
+  }
   function addTextEmail(text = "salemkhmis003@gmail.com") {
     const id = genID();
     fetchFont(currentFont);
     const object = {
       id,
-      text,
+      text: email,
       type: "text",
       size: 16,
       width: 0, // recalculate after editing
@@ -288,7 +582,7 @@ function handleImage(file) {
     fetchFont(currentFont);
     const object = {
       id,
-      text,
+      text: username,
       type: "text",
       size: 16,
       width: 0, // recalculate after editing
@@ -300,6 +594,13 @@ function handleImage(file) {
     allObjects = allObjects.map((objects, pIndex) =>
       pIndex === selectedPageIndex ? [...objects, object] : objects
     );
+  }
+  function scrollToPage(pageIndex) {
+    const scrollOffset = 300 * pageIndex; // Calculate scroll offset
+    window.scrollTo({
+      top: scrollOffset,
+      behavior: "smooth"
+    });
   }
   function onAddDrawing() {
     if (selectedPageIndex >= 0) {
@@ -409,17 +710,19 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
     logoutMenu = false;
   }
 
-  async function addHtmlBlockAsImage(htmlElement) {
+  async function addHtmlBlockAsImage(htmlElement,typeSign) {
   try {
-    
-    // Render HTML to canvas
-    const canvas = await html2canvas(htmlElement);
-    
+    // Render HTML to canvas with transparent background
+    const canvas = await html2canvas(htmlElement, {
+      backgroundColor: null, // Ensures transparency
+      useCORS: true, // Handles cross-origin images if any
+    });
+
     // Convert canvas to data URL (image)
     const imgUrl = canvas.toDataURL("image/png");
 
     // Create a new image object
-    const img = await readAsImage(imgUrl);
+    const img = await readAsImage(imgUrl); // Assume you have a function to handle this
     const id = genID();
     const { width, height } = img;
 
@@ -429,11 +732,12 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
       type: "image",
       width,
       height,
-      x: 0,
-      y: 0,
+      x: typeSign=='initial' ? 0 : pageHeight-pageHeight/1.7,
+      y: pageWidth-pageWidth/1.9,
       payload: img,
       file: imgUrl // Optional: If you want to store the image data
     };
+console.log('pageWidth', pageWidth-pageWidth/2);
 
     // Add the image object to the current page's objects
     allObjects = allObjects.map((objects, pIndex) =>
@@ -456,14 +760,14 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
 
 
   <main class="flex flex-row min-h-screen bg-gray-100">
-    <LeftMenu class="flex-shrink-0" on:initialsClicked={handleInitialsClick} on:signClicked={handleSignlick} 
+    <LeftMenu class="flex-shrink-0" on:initialsClicked={handleInitialsClick}  on:manuelleClicked={handleManuelleClick}  on:signClicked={handleSignClick} 
     on:emailClicked={()=>  { if(selectedPageIndex >= 0){ addTextEmail(); }}} 
     on:nameClicked={() => {if (selectedPageIndex >= 0) {addTextName(); }}} />
     <ProfilePage on:goToHome={handleGoToHome}/>
   </main>
   {:else}
   <main class="flex flex-row min-h-screen bg-gray-100">
-    <LeftMenu class="flex-shrink-0" on:initialsClicked={handleInitialsClick} on:signClicked={handleSignlick}
+    <LeftMenu class="flex-shrink-0" on:initialsClicked={handleInitialsClick} on:manuelleClicked={handleManuelleClick} on:signClicked={handleSignClick}
       on:emailClicked={()=>  { if(selectedPageIndex >= 0){ addTextEmail(); }}} 
       on:nameClicked={() => {if (selectedPageIndex >= 0) {
       addTextName();
@@ -573,7 +877,7 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
             <ul>
               <li on:click={() => profile = true} style="    margin-bottom: 6px;">Profile</li>
               <li  style="border-top: solid 1px #38a53d63;     margin-bottom: 6px;" >My files</li>
-              <li on:click={() => {authenticated = false; logoutMenu = false; showRegister = false}} style="border-top: solid 1px #38a53d63;" >Logout</li>
+              <li on:click={() => {authenticated = false; logoutMenu = false; showRegister = false; localStorage.setItem("session", null);}} style="border-top: solid 1px #38a53d63;" >Logout</li>
             </ul>
           </div>
           {/if}
@@ -594,12 +898,14 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
         style="z-index: 99;">
         <DrawingCanvas
           on:finish={e => {
-            const { originWidth, originHeight, path ,strokeColor, strokeWidth,} = e.detail;
+            const { originWidth, originHeight, path ,strokeColor, strokeWidth,htmlElement,htmlElement2} = e.detail;
             let scale = 1;
             if (originWidth > 500) {
               scale = 500 / originWidth;
             }
-            addDrawing(originWidth, originHeight, path, scale,strokeColor,strokeWidth);
+            addHtmlBlockAsImage(htmlElement,'manuelle');
+            addHtmlBlockAsImage(htmlElement2,'initial');
+            // addDrawing(originWidth, originHeight, path, scale,strokeColor,strokeWidth);
             addingDrawing = false;
           }}
           on:cancel={() => (addingDrawing = false)} />
@@ -617,22 +923,30 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
               <circle cx="32" cy="32" r="31" stroke="#878A93" stroke-width="2"/>
             </svg>
           </div>
-          Add image
+          Add image 
         </label>
       </div>
+      <div class="ticket" style="top: 70px;cursor: pointer;"
+          on:click={()=>{window.scrollTo({
+            top: document.body.scrollHeight,
+            behavior: "smooth"
+        });}}
+      >Start</div>
+
       {#each pages as page, pIndex (page)}
         <div
           class="p-5 w-full flex flex-col items-center overflow-hidden"
           on:mousedown={() => selectPage(pIndex)}
           on:touchstart={() => selectPage(pIndex)}>
+
           <div
             class="relative shadow-lg"
             class:shadow-outline={pIndex === selectedPageIndex}>
             <PDFPage
-              on:measure={e => onMeasure(e.detail.scale, pIndex)}
+              on:measure={e => {onMeasure(e.detail.scale, pIndex); detailsPage=e.detail}}
               {page} />
             <div
-              class="absolute bottom-0 right-0"
+              class="absolute top-0 left-0 transform origin-top-left"
               style="transform: scale({pagesScale[pIndex]}); touch-action: none;">
               {#each allObjects[pIndex] as object (object.id)}
                 {#if object.type === 'image'}
@@ -677,6 +991,49 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
           </div>
         </div>
       {/each}
+
+      <div class="ticket" style="bottom: 270px;">Next</div>
+      {#if showTicket===true} 
+      <div class="ticket-sign" style="    bottom: 300px;">
+        <div  style=" cursor: pointer;
+    font-size: 14px;    height: 36px;
+    border-radius: 8px;
+    background-image: linear-gradient(140deg, rgb(47 148 46), rgb(139 241 97));
+    display: flex;    align-items: center;
+    justify-content: center;" on:click={()=>{handleSignClick(); showTicket=false;}} >
+    <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="20" height="20" viewBox="0 0 64 64" fill="white">
+      <path d="M23 62c0 .8.6 1.5 1.5 1.5h20c.8 0 1.5-.7 1.5-1.5s-.7-1.5-1.5-1.5h-20C23.6 60.5 23 61.2 23 62zM10.9 55.5l-.4 6.5c-.1.5.3 1.1.8 1.4.3.2.5.2.8.2.3 0 .6-.1.9-.3l5.4-3.5c2.8-1.8 5.1-4.3 6.8-7.2l15.2-26.2c.4-.7.2-1.6-.5-2s-1.7-.1-2 .5L22.4 51c-1.5 2.5-3.5 4.6-5.9 6.2l-2.9 1.9.2-3.5c.1-2.8 1-5.7 2.4-8.2l15.1-26.2c.4-.7.1-1.6-.5-2-.7-.4-1.6-.1-2 .5L13.8 46C12.1 48.9 11.1 52.2 10.9 55.5zM43.3 20.9l1.8-3.3c.8-1.5 1.1-3.3.7-4.9-.5-1.7-1.5-3.1-3-3.9s-3.3-1.1-5-.6c-1.7.4-3.1 1.6-4 3.1L32 14.4c-.4.7-.1 1.6.5 2l8.6 5c.3.1.5.2.8.2.2 0 .3 0 .4 0C42.8 21.5 43 21.2 43.3 20.9zM52 60.5A1.5 1.5 0 1052 63.5 1.5 1.5 0 1052 60.5z"></path>
+    </svg>
+    
+            Sign 
+            <!-- <svg style="justify-self: anchor-center;" width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M15 21H9C6.17157 21 4.75736 21 3.87868 20.1213C3 19.2426 3 17.8284 3 15M21 15C21 17.8284 21 19.2426 20.1213 20.1213C19.8215 20.4211 19.4594 20.6186 19 20.7487" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 16V3M12 3L16 7.375M12 3L8 7.375" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg> -->
+
+
+
+          </div>
+      </div>
+      {/if}
+
+      <!-- <div class="ticket" style="bottom: 210px;">Date</div>
+      {#if showTicketDate===true} 
+      <div class="ticket-sign" style="    bottom: 250px; right: 70px;height: 55px;">
+        <div  style="cursor: pointer;
+        background: #3ba83a;
+        height: 50px;
+        width: 56px; font-size: 14px;
+        border-radius: 8px;" on:click={()=>{addTextDate(); showTicketDate=false;}} >
+            Date 
+            <svg style="justify-self: anchor-center;" width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M15 21H9C6.17157 21 4.75736 21 3.87868 20.1213C3 19.2426 3 17.8284 3 15M21 15C21 17.8284 21 19.2426 20.1213 20.1213C19.8215 20.4211 19.4594 20.6186 19 20.7487" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 16V3M12 3L16 7.375M12 3L8 7.375" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+          </div>
+      </div>
+      {/if} -->
+
     </div>
   {:else}
     <div class="w-full justify-center items-center choose_text" style="width: 80%; float: right; margin-left: 20%;" for="file">
@@ -696,14 +1053,26 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
       </div>
     </div>
   {/if}
-    <RightMenu class="flex-shrink-0" />
-    <div class="sign-block"  style="height: 64px;width: 200px;position: absolute;
-    top: -70px;">
+    <RightMenu class="flex-shrink-0"  {pages} on:selectPage={event => scrollToPage(event.detail)}/>
+    <div class="sign-block"  style="height: 64px;width: 220px;position: absolute;top: -70px;">
       <div class="css-12sxlyp ">
         <span>Doc signed by:</span>
         <div class="css-fv3lde">
-          <span class="css-po3aid" style="font-family: Mistral;">Salem Khmis</span>
-          <div class="css-1j983t3">ds45sdf42sdf42sd</div>
+          <span class="css-po3aid" style="font-family: {font ? font : 'Mistral'};">{username}</span>
+          <div class="css-1j983t3">{codeSign}</div>
+        </div>
+        
+      </div>
+    </div>
+
+    <div class="sign-block-two"  style="height: 64px;width: 220px;position: absolute;top: -70px;">
+      <div class="css-12sxlyp ">
+        <span>Initial by:</span>
+        <div class="css-fv3lde" style="padding-left: 35px;">
+          <span class="css-po3aid" style="font-family: {font ? font : 'Mistral'};">
+             {initial}
+          </span>
+          <div class="css-1j983t3">{codeSign}</div>
         </div>
         
       </div>
@@ -723,6 +1092,31 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
     width: 60%;
     place-self: center;
     border-radius: 15px; */
+  }
+  .ticket{
+    position: relative;
+    z-index: 99;
+    right: 44px;
+    background-image: linear-gradient(140deg, rgb(47 148 46), rgb(139 241 97));
+    color: white;
+    width: 80px;
+    height: 36px;
+    text-align: center;
+    border-bottom-left-radius: 7px;
+    border-top-left-radius: 7px;
+    font-size: 18px;
+    align-content: center;
+  }
+  .ticket-sign{
+    bottom: 243px;
+    right: 133px;
+    justify-self: right;
+    background: none;
+    width: 130px;
+    color: white;
+    position: relative;
+    align-content: center;
+    text-align: center;
   }
   .otherFile{
     cursor: pointer;
@@ -767,48 +1161,50 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
   }
 
   .css-12sxlyp {
-    background: none;
-    border: none;
-    font-size: 11px;
-    font-weight: 500;
-    line-height: 11px;
-    min-width: 170px;
-    padding-inline-start: 25px;
-    position: relative;
-    text-align: start;
-    height: 54px;
-  }
+  background: none; /* Ensure no background */
+  border: none;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 11px;
+  min-width: 170px;
+  padding-inline-start: 46px;
+  position: relative;
+  text-align: start;
+  height: 54px;
+}
 
-  .css-12sxlyp::before {
-    border-bottom: 2px solid rgb(0, 92, 185);
+.css-12sxlyp::before {
+  border-bottom: 2px solid rgb(0, 92, 185);
+    -webkit-border-start: 2px solid rgb(0, 92, 185);
     border-inline-start: 2px solid rgb(0, 92, 185);
-    border-start-start-radius: 5px;
-    border-end-start-radius: 5px;
+    border-start-start-radius: 15px;
+    border-end-start-radius: 15px;
     border-top: 2px solid rgb(0, 92, 185);
     content: "";
     display: block;
     height: 100%;
     inset-inline-start: 0px;
     position: absolute;
-    width: 20px;
+    width: 35px;
     top: 7px;
-  }
-  .css-fv3lde {
-    -webkit-box-align: center;
-    align-items: center;
-    display: flex;
-    padding: 10px;
-    margin-left: -18px;
-    font-size: 26px;
-    padding-top: 5px;
-  }
-  .css-1j983t3 {
-    position: absolute;
-    white-space: nowrap;
-    font-size: 11px;
-    bottom: 0px;
-    left: 25px;
-  }
+    background: none;
+}
+
+.css-fv3lde {
+  align-items: center;
+  display: flex;
+  padding: 7px 40px 4px 4px;  
+  margin-left: -18px;
+  font-size: 26px;
+}
+
+.css-1j983t3 {
+  position: absolute;
+  white-space: nowrap;
+  font-size: 11px;
+  bottom: 0px;
+  left: 46px;
+}
   .css-1achfvd:nth-of-type(2n+1) {
     background-color: rgb(249, 249, 249);
 }
@@ -849,4 +1245,9 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
   }
 
   }
+  .css-po3aid{
+    font-size: 20px;
+  }
 </style>
+
+
