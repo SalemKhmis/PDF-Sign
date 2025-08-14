@@ -12,7 +12,7 @@
   export let path;
   export let strokeColor = "black"; // Default stroke color
   export let strokeWidth = 5; // Default stroke width
-  export let text = "5dS6dsMLc56a6kM7";
+  let codeSign = localStorage.getItem("codeSign");
 
   const dispatch = createEventDispatcher();
   let startX;
@@ -136,6 +136,19 @@
   background: none; /* Transparent */
 }
 
+.css-12sxlyp::after {
+    content: "";
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    right: 0px;
+    border-right: 2px dashed rgb(0, 92, 185);
+    width: 30%;
+    border-bottom: 2px dashed rgb(0, 92, 185);
+    border-top: 2px dashed rgb(0, 92, 185);
+    border-bottom-right-radius: 5px;
+    border-top-right-radius: 5px;
+}
 .css-fv3lde {
   align-items: center;
   display: flex;
@@ -192,7 +205,7 @@
           d={path} />
       </svg>
       <!-- Text element added below the signature -->
-      <div class="css-1j983t3">ds45sdf42sdf42sd</div>
+      <div class="css-1j983t3">{codeSign}</div>
     </div>
     
   </div>

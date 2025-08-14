@@ -1,8 +1,42 @@
 <script>
-    export let selectedPageIndex;
     import LogoMenu from "./components/LogoMenu.svelte";
     import { createEventDispatcher } from 'svelte';
     import { onMount } from "svelte";
+
+    import { translations, currentLang, translateAll } from './stores/translation.js';
+	let loading = false;
+
+    const textsToTranslate = ['Signature', 'Initial', 'Signature manuelle', 'Stamp', 'Date Signed', 'Other Details', "Name","Email", "Add initials", "Company", "Title", "Custom Signature"];
+
+  onMount(() => {
+		translateAll(textsToTranslate, 'en', $currentLang, val => loading = val);
+	});
+
+	// Translate when language changes
+	$: if ($currentLang) {
+		translateAll(textsToTranslate, 'en', $currentLang, val => loading = val);
+	}
+
+	const languageOptions = [
+		{ code: 'en', label: 'English' },
+		{ code: 'fr', label: 'Français' },
+		{ code: 'es', label: 'Español' },
+		{ code: 'de', label: 'Deutsch' },
+		{ code: 'it', label: 'Italiano' },
+		{ code: 'pt', label: 'Português' },
+		{ code: 'ar', label: 'العربية' },
+		{ code: 'zh', label: '中文 (Chinese)' },
+		{ code: 'ja', label: '日本語 (Japanese)' },
+		{ code: 'ru', label: 'Русский (Russian)' },
+		{ code: 'tr', label: 'Türkçe' },
+		{ code: 'nl', label: 'Nederlands (Dutch)' },
+		{ code: 'pl', label: 'Polski (Polish)' },
+    { code: 'swa', label: 'Swahili' }
+	];
+
+	function changeLanguage(e) {
+		currentLang.set(e.target.value);
+	}
 
       let isMobile = false;
       let activeOnglet = 0;
@@ -10,32 +44,35 @@
 
     function handleInitialsClick() {   
       activeOnglet = 3;   
-      menu=false;
+      // menu=false;
       dispatch('initialsClicked');
     }
     function handleManuelleClick() {   
       activeOnglet = 2;   
-      menu=false;
       dispatch('manuelleClicked');
     }
     function handleSignClick() { 
       activeOnglet = 1;
-      menu=false;     
       dispatch('signClicked');
+    }
+     function handleStampClick() {   
+      activeOnglet = 3;   
+      dispatch('StampClicked');
     }
 
     function handleEmailClick() {      
-      menu=false;
       dispatch('emailClicked');
     }
+    function handleAllInitialsClick() {      
+      dispatch('allInitialsClicked');
+    }
     function handleNameClick() {    
-      menu=false;  
       dispatch('nameClicked');
     }
     const handleScreenWidth = () => {
     if (window.innerWidth < 768) {
       isMobile = true;
-      menu = false
+      // menu = false
       // Call your function here
       console.log("Screen width is less than 768px, function triggered.");
     } else {
@@ -54,10 +91,48 @@
     };
   });
     let menu= true;
+
+    let showResetIcon = false;
+  
+  function handleReset() {
+    // localStorage.removeItem(`savedImage_manuelle`);
+    // localStorage.removeItem(`savedImage_initial`);
+  }
     
   </script>
   
   <style>
+    .loader-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100vw;
+		height: 100vh;
+		background-color: rgba(255, 255, 255, 0.8);
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		z-index: 9999;
+	}
+
+	.spinner {
+		width: 60px;
+		height: 60px;
+		border: 6px solid #ccc;
+		border-top: 6px solid #3CA939;
+		border-radius: 50%;
+		animation: spin 1s linear infinite;
+	}
+
+	@keyframes spin {
+		0% { transform: rotate(0deg); }
+		100% { transform: rotate(360deg); }
+	}
+    	.loader {
+		margin: 1rem 0;
+		color: #3CA939;
+		font-weight: bold;
+	}
     .left-menu {
         background-color: #FAFAFA;
         width: 30%;
@@ -154,14 +229,43 @@
         padding-top: 0px !important;
       }
     }
+
+    .menu-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    cursor: pointer;
+    position: relative;
+  }
+  
+  .reset-icon {
+    margin-left: auto; /* Pushes the icon to the right */
+    padding-left: 8px;
+  }
+  
+  .reset-icon svg {
+    transition: fill 0.2s;
+  }
+  
+  .reset-icon:hover svg {
+    fill: #3CA939; /* Green color on hover */
+  }
   </style>
   {#if menu == true}
+
   <div class="left-menu opened">
+    <select on:change={changeLanguage} bind:value={$currentLang}>
+      {#each languageOptions as lang}
+        <option value={lang.code}>{lang.label}</option>
+      {/each}
+    </select>
     <div class="menu-item">
       <LogoMenu />
             
         <span class="title">Tillsco<strong>Sign</strong> </span>
     </div>
+    
+
     <div  class={`menu-item ${activeOnglet==1 ? 'active_item' : ''}`} on:click={handleSignClick}>
         <i class="mr-2">
             <svg width="19" height="19" viewBox="0 0 19 19" fill={activeOnglet==1 ? '#3CA939' : '#BCBCBC'} xmlns="http://www.w3.org/2000/svg">
@@ -170,7 +274,7 @@
                 <rect x="9.40576" y="3.87769" width="1.40741" height="6.59405" transform="rotate(-44.9444 9.40576 3.87769)" fill={activeOnglet==1 ? '#3CA939' : '#BCBCBC'} />
             </svg>
         </i>
-      <span>Signature</span>
+      <span>{$translations['Signature']}</span>
     </div>
     <div  class={`menu-item ${activeOnglet==5 ? 'active_item' : ''}`} on:click={handleInitialsClick}>
       <!-- <i class="mr-2">
@@ -179,24 +283,37 @@
             </svg>
     </i> -->
     <span style="margin-right: 10px;color: #BCBCBC;font-weight: bold;">AB</span>
-    <span>Initial</span>
+    <span>{$translations['Initial']}</span>
   </div>
-    <div class={`menu-item ${activeOnglet==2 ? 'active_item' : ''}`}  on:click={handleManuelleClick}>
-        <i class="mr-2">
-            <svg width="23" height="13" viewBox="0 0 23 13" fill={activeOnglet==2 ? '#3CA939' : '#BCBCBC'} xmlns="http://www.w3.org/2000/svg">
-                <path d="M22.4031 4.33365C20.5409 4.45213 17.8842 6.1854 16.5396 6.75413C15.4935 7.19761 14.5911 7.58015 13.8038 7.58015C12.9914 7.58015 12.8691 7.03173 13.0381 5.82318C13.0777 5.55235 13.4587 3.14203 11.503 3.24697C10.6007 3.29775 9.19145 4.08652 5.40951 7.51244L6.90143 4.00189C7.99431 1.43245 4.98889 -1.12683 2.23871 0.521809L0.265055 1.77098C-0.000975466 1.93009 -0.0800656 2.26523 0.0888996 2.51913L0.70724 3.43316C0.876206 3.68706 1.23211 3.76153 1.50174 3.59904L3.58684 2.28216C4.24832 1.88608 5.05001 2.5259 4.76241 3.19958L1.23211 11.5139C0.987651 12.086 1.32918 13 2.29983 13C2.59821 13 2.893 12.8917 3.1123 12.6818C4.62939 11.2532 8.67377 7.58015 10.7049 6.05338C10.6259 7.01819 10.6295 8.04732 11.4455 8.89025C11.9956 9.45898 12.7865 9.74673 13.8002 9.74673C15.0801 9.74673 16.2449 9.25248 17.4779 8.73114C18.6643 8.23012 21.037 6.61195 22.4534 6.50362C22.759 6.47993 22.9999 6.2565 22.9999 5.96875V4.88207C23.0071 4.57401 22.7302 4.31334 22.4031 4.33365Z" fill={activeOnglet==2 ? '#3CA939' : '#BCBCBC'}/>
-                </svg>
-        </i>
-      <span>Signatue manuelle</span>
-    </div>
-    <div class={`menu-item ${activeOnglet==3 ? 'active_item' : ''}`} >
+  <div 
+  class={`menu-item ${activeOnglet==2 ? 'active_item' : ''}`} 
+  on:click={handleManuelleClick}
+  on:mouseenter={() => {if(localStorage.getItem(`savedImage_manuelle`)||localStorage.getItem(`savedImage_initial`)){ showResetIcon = true } }}
+  on:mouseleave={() => showResetIcon = false}
+>
+  <i class="mr-2">
+    <svg width="23" height="13" viewBox="0 0 23 13" fill={activeOnglet==2 ? '#3CA939' : '#BCBCBC'} xmlns="http://www.w3.org/2000/svg">
+      <path d="M22.4031 4.33365C20.5409 4.45213 17.8842 6.1854 16.5396 6.75413C15.4935 7.19761 14.5911 7.58015 13.8038 7.58015C12.9914 7.58015 12.8691 7.03173 13.0381 5.82318C13.0777 5.55235 13.4587 3.14203 11.503 3.24697C10.6007 3.29775 9.19145 4.08652 5.40951 7.51244L6.90143 4.00189C7.99431 1.43245 4.98889 -1.12683 2.23871 0.521809L0.265055 1.77098C-0.000975466 1.93009 -0.0800656 2.26523 0.0888996 2.51913L0.70724 3.43316C0.876206 3.68706 1.23211 3.76153 1.50174 3.59904L3.58684 2.28216C4.24832 1.88608 5.05001 2.5259 4.76241 3.19958L1.23211 11.5139C0.987651 12.086 1.32918 13 2.29983 13C2.59821 13 2.893 12.8917 3.1123 12.6818C4.62939 11.2532 8.67377 7.58015 10.7049 6.05338C10.6259 7.01819 10.6295 8.04732 11.4455 8.89025C11.9956 9.45898 12.7865 9.74673 13.8002 9.74673C15.0801 9.74673 16.2449 9.25248 17.4779 8.73114C18.6643 8.23012 21.037 6.61195 22.4534 6.50362C22.759 6.47993 22.9999 6.2565 22.9999 5.96875V4.88207C23.0071 4.57401 22.7302 4.31334 22.4031 4.33365Z" fill={activeOnglet==2 ? '#3CA939' : '#BCBCBC'}/>
+    </svg>
+  </i>
+  <span> {$translations['Signature manuelle']}</span>
+  
+  {#if showResetIcon}
+    <i class="reset-icon ml-auto" on:click|stopPropagation={handleReset}>
+      <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="16" height="16" viewBox="0 0 50 50">
+        <path d="M 25 2 A 2.0002 2.0002 0 1 0 25 6 C 35.517124 6 44 14.482876 44 25 C 44 35.517124 35.517124 44 25 44 C 14.482876 44 6 35.517124 6 25 C 6 19.524201 8.3080175 14.608106 12 11.144531 L 12 15 A 2.0002 2.0002 0 1 0 16 15 L 16 4 L 5 4 A 2.0002 2.0002 0 1 0 5 8 L 9.5253906 8 C 4.9067015 12.20948 2 18.272325 2 25 C 2 37.678876 12.321124 48 25 48 C 37.678876 48 48 37.678876 48 25 C 48 12.321124 37.678876 2 25 2 z"></path>
+        </svg>
+    </i>
+  {/if}
+</div>
+    <div class={`menu-item ${activeOnglet==3 ? 'active_item' : ''}`} on:click={handleStampClick}>
         <i class="mr-2">
             <svg width="15" height="22" viewBox="0 0 15 22" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M10.9092 20.4546H4.091C3.68191 20.4546 3.40918 20.7273 3.40918 21.1364C3.40918 21.5455 3.68191 21.8182 4.091 21.8182H10.9092C11.3183 21.8182 11.591 21.5455 11.591 21.1364C11.591 20.7273 11.3183 20.4546 10.9092 20.4546Z" fill="#BCBCBC"/>
                 <path d="M12.9545 13.6364H12.2727C11.1818 13.6364 10.2273 12.75 10.2273 11.5909C12.2727 10.5682 13.6364 8.52273 13.6364 6.13636C13.6364 2.72727 10.9091 0 7.5 0C4.09091 0 1.36364 2.72727 1.36364 6.13636C1.36364 8.52273 2.72727 10.6364 4.77273 11.5909C4.77273 12.6818 3.81818 13.6364 2.72727 13.6364H2.04545C0.886364 13.6364 0 14.5227 0 15.6818V18.4091C0 18.8182 0.272727 19.0909 0.681818 19.0909H14.3182C14.7273 19.0909 15 18.8182 15 18.4091V15.6818C15 14.5227 14.1136 13.6364 12.9545 13.6364Z" fill="#BCBCBC"/>
                 </svg>
         </i>
-      <span>Stamp</span>
+      <span> {$translations['Stamp']}</span>
     </div>
     <div class={`menu-item ${activeOnglet==4 ? 'active_item' : ''}`} >
         <i class="mr-2">
@@ -204,7 +321,7 @@
                 <path fill-rule="evenodd" clip-rule="evenodd" d="M5.70261 0C5.96439 0 6.21545 0.103993 6.40056 0.289102C6.58567 0.47421 6.68966 0.725272 6.68966 0.987055V1.97411H12.612V0.987055C12.612 0.725272 12.716 0.47421 12.9011 0.289102C13.0862 0.103993 13.3373 0 13.599 0C13.8608 0 14.1119 0.103993 14.297 0.289102C14.4821 0.47421 14.5861 0.725272 14.5861 0.987055V1.97411H15.5732C16.3585 1.97411 17.1117 2.28609 17.667 2.84142C18.2223 3.39674 18.5343 4.14993 18.5343 4.93528V5.92233H0.767334V4.93528C0.767334 4.14993 1.07931 3.39674 1.63464 2.84142C2.18997 2.28609 2.94315 1.97411 3.7285 1.97411H4.71555V0.987055C4.71555 0.725272 4.81955 0.47421 5.00466 0.289102C5.18976 0.103993 5.44083 0 5.70261 0ZM0.767334 7.89644V16.7799C0.767334 17.5653 1.07931 18.3185 1.63464 18.8738C2.18997 19.4291 2.94315 19.7411 3.7285 19.7411H15.5732C16.3585 19.7411 17.1117 19.4291 17.667 18.8738C18.2223 18.3185 18.5343 17.5653 18.5343 16.7799V7.89644H0.767334Z" fill="#BCBCBC"/>
                 </svg>
         </i>
-      <span>Date Signed</span>
+      <span> {$translations['Date Signed']}</span>
     </div>
     <div class="separator"></div>
     <div class="menu-item active_item">
@@ -213,27 +330,31 @@
                 <path fill-rule="evenodd" clip-rule="evenodd" d="M11.9484 0.805908C11.1631 0.805908 10.4099 1.11789 9.85456 1.67321C9.29923 2.22854 8.98726 2.98172 8.98726 3.76707H5.03903C4.51547 3.76707 4.01335 3.97506 3.64313 4.34528C3.27291 4.71549 3.06492 5.21762 3.06492 5.74118V8.70235C2.27957 8.70235 1.52639 9.01433 0.971065 9.56965C0.415739 10.125 0.10376 10.8782 0.10376 11.6635C0.10376 12.4489 0.415739 13.202 0.971065 13.7574C1.52639 14.3127 2.27957 14.6247 3.06492 14.6247V18.5729C3.06492 19.0965 3.27291 19.5986 3.64313 19.9688C4.01335 20.339 4.51547 20.547 5.03903 20.547H8.24696C8.70508 20.547 9.14444 20.365 9.46838 20.0411C9.79232 19.7171 9.97431 19.2778 9.97431 18.8197C9.97431 18.1386 10.5271 17.5858 11.2081 17.5858H12.6887C13.3698 17.5858 13.9225 18.1386 13.9225 18.8197C13.9225 19.7732 14.6964 20.547 15.6499 20.547H17.8708C18.3943 20.547 18.8964 20.339 19.2667 19.9688C19.6369 19.5986 19.8449 19.0965 19.8449 18.5729V15.365C19.8449 14.9068 19.6629 14.4675 19.3389 14.1436C19.015 13.8196 18.5756 13.6376 18.1175 13.6376C17.4364 13.6376 16.8837 13.0849 16.8837 12.4038V10.9232C16.8837 10.2422 17.4364 9.6894 18.1175 9.6894C18.5756 9.6894 19.015 9.50742 19.3389 9.18348C19.6629 8.85954 19.8449 8.42018 19.8449 7.96206V5.74118C19.8449 5.21762 19.6369 4.71549 19.2667 4.34528C18.8964 3.97506 18.3943 3.76707 17.8708 3.76707H14.9096C14.9096 2.98172 14.5976 2.22854 14.0423 1.67321C13.487 1.11789 12.7338 0.805908 11.9484 0.805908Z" fill="#3BA83A"/>
                 </svg>
         </i>
-      <span>Other Details</span>
+      <span>{$translations['Other Details ']}</span>
     </div>
     <div class="menu-item" on:click={handleNameClick}>
         <i class="mr-2"></i>
-      <span>Name</span>
+      <span> {$translations['Name']}</span>
     </div>
     <div class="menu-item" on:click={handleEmailClick}>
         <i class="mr-2"></i>
-      <span>Email</span>
+      <span> {$translations['Email']}</span>
+    </div>
+    <div class="menu-item" on:click={handleAllInitialsClick}>
+      <i class="mr-2"></i>
+    <span> {$translations['Add initials']}</span>
+  </div>
+    <div class="menu-item">
+        <i class="mr-2"></i>
+      <span> {$translations['Company']}</span>
     </div>
     <div class="menu-item">
         <i class="mr-2"></i>
-      <span>Company</span>
+      <span> {$translations['Title']}</span>
     </div>
     <div class="menu-item">
         <i class="mr-2"></i>
-      <span>Title</span>
-    </div>
-    <div class="menu-item">
-        <i class="mr-2"></i>
-      <span>Custom Signature</span>
+      <span> {$translations['Custom Signature']}</span>
     </div>
     <div  class="block_icon"  on:click={() => menu = false}>
       <div class="icon_left">
@@ -274,7 +395,7 @@
                 </svg>
         </i>
     </div>
-    <div class="menu-item" style="place-content: center;">
+    <div class="menu-item" style="place-content: center;" on:click={handleStampClick}>
         <i class="mr-4">
             <svg width="15" height="22" viewBox="0 0 15 22" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M10.9092 20.4546H4.091C3.68191 20.4546 3.40918 20.7273 3.40918 21.1364C3.40918 21.5455 3.68191 21.8182 4.091 21.8182H10.9092C11.3183 21.8182 11.591 21.5455 11.591 21.1364C11.591 20.7273 11.3183 20.4546 10.9092 20.4546Z" fill="#BCBCBC"/>
@@ -307,3 +428,10 @@
     </div>
   </div>
   {/if}
+  {#if loading}
+    <div class="loader-overlay">
+      <div class="spinner"></div>
+    </div>
+  {/if}
+
+  

@@ -5,7 +5,7 @@ import commonjs from '@rollup/plugin-commonjs';
 import livereload from 'rollup-plugin-livereload';
 import { terser } from 'rollup-plugin-terser';
 import sveltePreprocess from 'svelte-preprocess';
-
+import babel from '@rollup/plugin-babel';
 const production = !process.env.ROLLUP_WATCH;
 
 export default {
@@ -32,7 +32,16 @@ export default {
       browser: true,
       dedupe: ['svelte'],
     }),
-    commonjs(),
+  commonjs({
+    include: ['node_modules/**'],
+    transformMixedEsModules: true,
+  }),
+  babel({
+    presets: ['@babel/preset-env'],
+  extensions: ['.js', '.mjs', '.html', '.svelte'],
+  babelHelpers: 'bundled',
+  include: ['src/**', 'node_modules/pdfjs-dist/**']
+  }),
     !production && serve(),
     !production && livereload('public'),
     production && terser(),

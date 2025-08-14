@@ -1,56 +1,130 @@
 <script>
-  export let selectedPageIndex;
-  export let pages = []; // Receive pages as a prop
+  import PDFPage from './PDFPage.svelte';
+  import { createEventDispatcher } from 'svelte';
 
-  import { createEventDispatcher } from "svelte";
-
+  export let pages = [];
+  export let selectedPageIndex = 0;
+  
   const dispatch = createEventDispatcher();
-
+  const thumbnailScale = 0.2;
+  
   function selectPage(index) {
-    dispatch("selectPage", index);
+    selectedPageIndex = index;
+    dispatch('pageSelected', { index });
+  }
+
+  function deletePage(index, event) {
+    event.stopPropagation(); // Prevent triggering the page selection
+    dispatch('deletePage', { index });
+  }
+  function resetPage(index, event) {
+    event.stopPropagation();
+    dispatch('resetPage', { index });
   }
 </script>
 
 <style>
   .right-menu {
-      padding: 20px;
-      border-right: solid 1px #cbd5e0;
-      background: white;
-      margin-top: 6%;
-      border-top-left-radius: 30px;
-      width: 25%;
+    padding: 20px;
+    border-right: solid 1px #cbd5e0;
+    background: white;
+    margin-top: 6%;
+    border-top-left-radius: 30px;
+    width: 25%;
+    overflow-y: auto;
+    max-height: 90vh;
   }
-  .menu-item {
-      display: flex;
-      align-items: center;
-      margin-bottom: 7px;
-      cursor: pointer;
-      border-radius: 30px;
-      padding: 5px 5px 5px 13px;
-      color: #707070;
+  .thumbnail-container {
+    margin: 10px 0;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
+    background: #C4C4C4;
+    color: white;
+    justify-self: center;
+    font-weight: bold;
   }
-  .menu-item:hover {
-      color: #38a53d;
+  .thumbnail-container.selected {
+    border-color: #38a53d;
+    box-shadow: 0 0 10px rgba(56, 165, 61, 0.3);
+    background: #38a53d;
   }
-  .active_item {
-      border: solid 2px #38a53d;
+  .thumbnail-wrapper {
+    width: 100%;
+    overflow: hidden;
+  }
+  .title {
+    font-size: 24px;
+    color: #7D7E7E;
+    margin-bottom: 15px;
+  }
+  .separator {
+    border: solid 1.5px #E9E9E9;
+    margin: 15px 0;
+  }
+
+  .page-item {
+    position: relative;
+    margin-bottom: 10px;
+  }
+  .delete-btn {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    background: #ff4444;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .page-item:hover .delete-btn {
+    opacity: 1;
   }
 </style>
 
 <div class="right-menu">
-  <div class="menu-item">
-    <i class="mr-4">
-      <svg width="19" height="21" viewBox="0 0 19 21" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path fill-rule="evenodd" clip-rule="evenodd" d="M0.76709 17.5856C0.76709 18.3709 1.07907 19.1241 1.6344 19.6795C2.18972 20.2348 2.94291 20.5468 3.72826 20.5468H15.5729C16.3583 20.5468 17.1115 20.2348 17.6668 19.6795C18.2221 19.1241 18.5341 18.3709 18.5341 17.5856V7.54528C18.5337 6.76033 18.2216 6.00767 17.6665 5.45272L13.888 1.6723C13.3327 1.1173 12.5796 0.80557 11.7945 0.805664H3.72826C2.94291 0.805664 2.18972 1.11764 1.6344 1.67297C1.07907 2.2283 0.76709 2.98148 0.76709 3.76683V17.5856ZM5.70236 10.6762C5.44058 10.6762 5.18952 10.7802 5.00441 10.9653C4.8193 11.1504 4.71531 11.4015 4.71531 11.6633C4.71531 11.9251 4.8193 12.1761 5.00441 12.3612C5.18952 12.5463 5.44058 12.6503 5.70236 12.6503H13.5988C13.8606 12.6503 14.1117 12.5463 14.2968 12.3612C14.4819 12.1761 14.5859 11.9251 14.5859 11.6633C14.5859 11.4015 14.4819 11.1504 14.2968 10.9653C14.1117 10.7802 13.8606 10.6762 13.5988 10.6762H5.70236ZM5.70236 14.6244C5.44058 14.6244 5.18952 14.7284 5.00441 14.9135C4.8193 15.0986 4.71531 15.3497 4.71531 15.6115C4.71531 15.8733 4.8193 16.1243 5.00441 16.3094C5.18952 16.4946 5.44058 16.5985 5.70236 16.5985H9.65059C9.91237 16.5985 10.1634 16.4946 10.3485 16.3094C10.5336 16.1243 10.6376 15.8733 10.6376 15.6115C10.6376 15.3497 10.5336 15.0986 10.3485 14.9135C10.1634 14.7284 9.91237 14.6244 9.65059 14.6244H5.70236Z" fill="#BCBCBC"/>
-      </svg>
-    </i>
-    <span>{pages.length} Pages</span>
-  </div>
+  <div class="title">Document Pages</div>
+  <div class="separator"></div>
+  
+  {#each pages as page, index}
+    <div 
+      class="page-item thumbnail-container {selectedPageIndex === index ? 'selected' : ''}"
+      on:click={() => selectPage(index)}
+    >
 
-  <!-- Loop through PDF pages -->
-    {#each pages as _, index}
-    <div class="menu-item" on:click={() => selectPage(index)}>
-      <span>Page {index + 1}</span>
+      
+      <div class="thumbnail-wrapper">
+        <PDFPage 
+          page={page} 
+          scale={thumbnailScale}
+          on:measure={() => {}}
+        />
+      </div>
+      <div class="text-center mt-1 text-sm" style="height: 35px;align-content: center;">Page {index + 1} 
+        <button style="float: right;" on:click|stopPropagation={e => deletePage(index, e)}>
+          <svg class="w-6 h-6 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+            <path fill-rule="evenodd" d="M20 10H4v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8ZM9 13v-1h6v1a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1Z" clip-rule="evenodd"/>
+            <path d="M2 6a2 2 0 0 1 2-2h16a2 2 0 1 1 0 4H4a2 2 0 0 1-2-2Z"/>
+          </svg>
+
+        </button>
+        <button style="float: right;margin-right: 4px;" on:click|stopPropagation={e => resetPage(index, e)}>
+
+          <svg class="w-6 h-6 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+            <path fill-rule="evenodd" d="M9.484 6.743c.41-.368.443-1 .077-1.41a.99.99 0 0 0-1.405-.078L2.67 10.203l-.007.006A2.048 2.048 0 0 0 2 11.721a2.058 2.058 0 0 0 .662 1.51l5.584 5.09a.99.99 0 0 0 1.405-.07 1.003 1.003 0 0 0-.07-1.412l-5.577-5.082a.05.05 0 0 1 0-.072l5.48-4.942Zm6.543 9.199v-.42a4.168 4.168 0 0 1 2.715 2.415c.154.382.44.695.806.88a1.683 1.683 0 0 0 2.167-.571c.214-.322.312-.707.279-1.092V15.88c0-3.77-2.526-7.039-5.966-7.573V7.57a1.957 1.957 0 0 0-.994-1.838 1.931 1.931 0 0 0-2.153.184L7.8 10.164a.753.753 0 0 0-.012.011l-.011.01a2.098 2.098 0 0 0-.703 1.57 2.108 2.108 0 0 0 .726 1.59l5.08 4.25a1.933 1.933 0 0 0 2.929-.614c.167-.32.242-.68.218-1.04Z" clip-rule="evenodd"/>
+          </svg>
+          
+
+        </button>
+        
+      </div>
     </div>
   {/each}
 </div>

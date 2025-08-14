@@ -1,7 +1,7 @@
 <script>
   import { createEventDispatcher } from "svelte";
   import { pannable } from "./utils/pannable.js";
-  
+  import { onMount } from 'svelte';
   const dispatch = createEventDispatcher();
   let canvas;
   let x = 0;
@@ -26,6 +26,66 @@
   let drawing = false;
   let strokeColor = "green"; // Default stroke color
   let strokeWidth = 2; // Default stroke width
+  let username = localStorage.getItem("username");
+  let font = localStorage.getItem("font");
+  let colorSign = '#000';
+  let selectedColor = localStorage.getItem("selectedColor");
+  let selectedColorBorder = localStorage.getItem("selectedColorBorder");
+  let colorSignBorder = '#2473c3';
+  let codeSign = localStorage.getItem("codeSign");
+
+    onMount(async () => {
+    try {
+        if (selectedColor) {
+          colorSign=selectedColor;
+        }
+                 if (selectedColorBorder) {
+          colorSignBorder=selectedColorBorder;
+        }
+    } catch (e) {
+      console.log(e);
+    }
+  });
+  export let checked = false; // default value is false
+
+
+  // let ManuelInitial =null;
+
+  // const ManuelSign = localStorage.getItem("ManuelSign");
+  // console.log({ManuelSign});
+
+  //   if (ManuelSign) {
+  //     const container = document.getElementById("restore-container");
+  //     if (container) {
+  //       container.innerHTML = ManuelSign;
+  //       const dx = -(minX - 10);
+  //       const dy = -(minY - 10);
+  //       const width = maxX - minX + 20;
+  //       const height = maxY - minY + 20;
+        
+  //       dispatch("finish", {
+  //         originWidth: width,
+  //         originHeight: height,
+  //         path: paths.reduce((acc, cur) => {
+  //           return acc + cur[0] + (cur[1] + dx) + "," + (cur[2] + dy);
+  //         }, ""),
+  //         strokeColor, 
+  //         strokeWidth,container,ManuelInitial
+  //       });
+  //     }
+  //   }
+  
+  // });
+
+  // Internal variable
+  let addNameToSign = false;
+  let addInitialManuel = false;
+
+  // React to prop changes
+  $: {
+    addNameToSign = checked;
+    // You can add other reactive statements here if needed
+  }
 
   // function getRelativePosition2(event, canvas) {
   //   const rect = canvas.getBoundingClientRect();
@@ -35,6 +95,8 @@
   //   };
   // }
   function handlePanStart2(event) {
+    console.log("paths2", paths2);
+    
     if (event.detail.target !== canvas2) return (drawing = false);
     drawing = true;
     
@@ -119,15 +181,34 @@
   }
 
   function finish() {
-    if (!paths.length) return;
+    if (!paths.length&&!paths2.length) return;
     
     const dx = -(minX - 10);
     const dy = -(minY - 10);
     const width = maxX - minX + 20;
     const height = maxY - minY + 20;
-    console.log("sign div clicked");
-    const htmlElement = document.querySelector(".sign-block");
-    const htmlElement2 = document.querySelector(".sign-block2");
+    let htmlElement;
+    let htmlElement2;
+    if (paths.length>0) {
+      if (addNameToSign) {
+      htmlElement = document.querySelector(".sign-block3");
+      }else{
+      htmlElement = document.querySelector(".sign-block");
+      }
+    }else {htmlElement=null}
+
+    if (addInitialManuel&&paths2.length>0) {
+       htmlElement2 = document.querySelector(".sign-block2");
+    }else {htmlElement2=null;}
+
+    console.log("htmlElement2", htmlElement2);
+    
+    if (htmlElement) {
+      localStorage.setItem("savedHtmlBlock", htmlElement.outerHTML);
+    }
+
+    // localStorage.setItem('ManuelSign',htmlElement.outerHTML );
+    // localStorage.setItem('ManuelInitial',htmlElement2.outerHTML);
     dispatch("finish", {
       originWidth: width,
       originHeight: height,
@@ -135,7 +216,7 @@
         return acc + cur[0] + (cur[1] + dx) + "," + (cur[2] + dy);
       }, ""),
       strokeColor, 
-      strokeWidth,htmlElement,htmlElement2
+      strokeWidth,htmlElement2,htmlElement
     });
   }
 
@@ -211,14 +292,17 @@
       img.src = url;
     });
   }
+
+
 </script>
 {#if path}
-<div class="sign-block" style="height: 64px;width: 200px;    position: absolute;
-    top: -200px;">
-  <div class="css-12sxlyp ">
-    <span>  Signature manuelle :</span>
+<div class="sign-block" style="height: 64px;width: 200px; position: absolute;
+    top: -200px;
+    ">
+  <div class="css-12sxlyp " style="--border-color: {colorSignBorder}">
+    <span style="color: {colorSign}">  Signature manuelle :</span>
     <div class="css-fv3lde" >
-      <svg class="w-full h-full pointer-events-none" 
+      <svg class="pointer-events-none w-full h-full"
       xmlns="http://www.w3.org/2000/svg" 
       viewBox="0 0 600 100" 
       width="220" 
@@ -232,16 +316,49 @@
           fill="none" />
       </svg>
   <!-- Text element added below the signature -->
-  <div class="css-1j983t3">ds45sdf42sdf42sd</div>
+  <div class="css-1j983t3" style="color: {colorSign}">{codeSign}</div>
 </div>
 
 </div>
 </div>
+
+
+<div class="sign-block3" style="height: 64px;width: 200px; position: absolute;
+    top: -200px;
+    ">
+  <div class="css-12sxlyp " style="--border-color: {colorSignBorder}">
+    <span style="color: {colorSign}">  Signature complete :</span>
+    <div class="css-fv3lde" style="color: {colorSign}">
+      <svg class="pointer-events-none w-full h-full"
+      xmlns="http://www.w3.org/2000/svg" 
+      viewBox="0 0 600 100" 
+      width="220" 
+      height="60">
+        <path
+          stroke-width={strokeWidth}
+          stroke-linejoin="round"
+          stroke-linecap="round"
+          d={path}
+          stroke={strokeColor}
+          fill="none" />
+      </svg>
+      <span style="position: absolute;
+    white-space: nowrap;
+    font-size: 16px;
+    bottom: 28px; font-family: {font ? font : 'Mistral'};">{username}</span>
+  <!-- Text element added below the signature -->
+  <div class="css-1j983t3" style="color: {colorSign}">{codeSign}</div>
+</div>
+
+</div>
+</div>
+
+{/if}
 
 <div class="sign-block2" style="height: 64px;width: 200px;    position: absolute;
     top: -200px;">
-  <div class="css-12sxlyp ">
-    <span>  Initial manuelle :</span>
+  <div class="css-12sxlyp " style="--border-color: {colorSignBorder}">
+    <span style="color: {colorSign}">  Initial manuelle :</span>
     <div class="css-fv3lde" >
       <svg class="w-full h-full pointer-events-none" 
       xmlns="http://www.w3.org/2000/svg" 
@@ -257,12 +374,12 @@
           fill="none" />
       </svg>
   <!-- Text element added below the signature -->
-  <div class="css-1j983t3">ds45sdf42sdf42sd</div>
+  <div class="css-1j983t3" style="color: {colorSign}">{codeSign}</div>
 </div>
 
 </div>
 </div>
-{/if}
+
 <div class="header_modal">
   <div class="flex title">
     Signatue manuelle
@@ -277,6 +394,26 @@
 
 {#if view === 1}
 <div class="signature-box">
+  <label style="    font-weight: bold;
+  color: #53555a;">
+  <input 
+    type="checkbox" 
+    bind:checked={addInitialManuel}
+    on:change={() => addInitialManuel}
+  />
+  Add initial manuelle
+  </label>
+
+  <label style="    font-weight: bold;
+    color: #53555a;">
+    <input 
+      type="checkbox" 
+      bind:checked={addNameToSign}
+      on:change={() => addNameToSign}
+    />
+    Add the name in the manual signature
+    </label>
+    
   <div class="controls">
     <!-- Stroke size selection -->
     <div class="pen-size">
@@ -294,6 +431,29 @@
   </div>
 
   <div style="display: flex;">
+    <div bind:this={canvas}
+    use:pannable
+    on:panstart={handlePanStart}
+    on:panmove={handlePanMove}
+    on:panend={handlePanEnd}
+    class="relative w-full h-full select-none" style="width: 45%;">
+
+    <svg class="pointer-events-none" style="    height: 200px;
+    width: 100%;
+    border: solid 1px #3ca939;
+    border-radius: 10px;
+    margin: 21px 0px;">
+      <path
+        stroke-width={strokeWidth}
+        stroke-linejoin="round"
+        stroke-linecap="round"
+        d={path}
+        stroke={strokeColor}
+        fill="none" />
+    </svg>
+
+  </div>
+  {#if addInitialManuel}
     <div bind:this={canvas2}
           use:pannable
           on:panstart={handlePanStart2}
@@ -305,7 +465,7 @@
            width: 100%;
           border: solid 1px #3ca939;
           border-radius: 10px;
-          margin: 21px 0px;">
+          margin: 21px 10%;">
             <path
               stroke-width={strokeWidth}
               stroke-linejoin="round"
@@ -314,35 +474,15 @@
               stroke={strokeColor}
               fill="none" />
           </svg>
-        </div>
-
-        <div bind:this={canvas}
-        use:pannable
-        on:panstart={handlePanStart}
-        on:panmove={handlePanMove}
-        on:panend={handlePanEnd}
-        class="relative w-full h-full select-none" style="width: 45%;">
-
-        <svg class="pointer-events-none" style="    height: 200px;
-        width: 100%;
-        border: solid 1px #3ca939;
-        border-radius: 10px;
-        margin: 21px 5%;">
-          <path
-            stroke-width={strokeWidth}
-            stroke-linejoin="round"
-            stroke-linecap="round"
-            d={path}
-            stroke={strokeColor}
-            fill="none" />
-        </svg>
-
       </div>
+  {/if}
+
+
 
   </div>
   <div style="display: flex;">
-    <div class="sign_title">Initial</div>
     <div class="sign_title">Signature manuelle</div>
+    {#if addInitialManuel}<div class="sign_title">Initial</div>{/if}
   </div>
 
 
@@ -436,6 +576,13 @@
 </div>
 {/if}
 <style>
+    input[type="checkbox"] {
+    /* Style for unchecked state */
+    accent-color: #3CA939; /* This changes the checked color */
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+  }
   .uploaded-image-container {
     margin-top: 20px;
     display: flex;
@@ -595,12 +742,12 @@
 }
 
 .css-12sxlyp::before {
-  border-bottom: 2px solid rgb(0, 92, 185);
-    -webkit-border-start: 2px solid rgb(0, 92, 185);
-    border-inline-start: 2px solid rgb(0, 92, 185);
+  border-bottom: 2px solid var(--border-color);
+    -webkit-border-start: 2px solid var(--border-color);
+    border-inline-start: 2px solid var(--border-color);
     border-start-start-radius: 15px;
     border-end-start-radius: 15px;
-    border-top: 2px solid rgb(0, 92, 185);
+    border-top: 2px solid var(--border-color);
     content: "";
     display: block;
     height: 100%;
@@ -610,7 +757,19 @@
     top: 7px;
     background: none;
 }
-
+.css-12sxlyp::after {
+    content: "";
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    right: 0px;
+    border-right: 2px dashed var(--border-color);
+    width: 30%;
+    border-bottom: 2px dashed var(--border-color);
+    border-top: 2px dashed var(--border-color);
+    border-bottom-right-radius: 15px;
+    border-top-right-radius: 15px;
+}
 .css-fv3lde {
   align-items: center;
   display: flex;

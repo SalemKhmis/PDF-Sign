@@ -19,7 +19,22 @@
   generateCode(email,username).then(res =>  code = res);
   console.log('code ', code);
   
-  
+  // Initialize color from localStorage or default to black
+    let selectedColor = localStorage.getItem('selectedColor') || '#000000';
+
+    // Save color when changed
+    function handleColorChange(event) {
+        selectedColor = event.target.value;
+        localStorage.setItem('selectedColor', selectedColor);
+    }
+
+        let selectedColorBorder = localStorage.getItem('selectedColorBorder') || '#000000';
+
+    // Save color when changed
+    function handleColorChangeBorder(event) {
+        selectedColorBorder = event.target.value;
+        localStorage.setItem('selectedColorBorder', selectedColorBorder);
+    }
 
   async function addHtmlBlockAsImage() {
   try {
@@ -73,6 +88,13 @@
 
       return code;
   }
+  import { onMount } from 'svelte';
+  onMount(() => {
+    const link = document.createElement('link');
+    link.href = 'https://fonts.googleapis.com/css2?family=Dancing+Script&display=swap';
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+  });
   async function handleSubmit() {
     if (email && username) {
       localStorage.setItem("username", username);
@@ -209,144 +231,572 @@
         </div>
 
         <!-- now the tale -->
-        <table style="width: 100%;">
-          <tbody>
-            <tr data-qa="signature-row" class="css-1achfvd">
-              <td class="css-85irbq">
-                <div class="css-13qgaex">
-                  <input
-                    type="radio"
-                    value="Mistral"
-                    bind:group={selectedValue}
-                  />
-                </div>
-              </td>
-              <td class="css-85irbq">
-                <div >
-                  <div  class="css-12sxlyp">
-                    <span>Signé par&nbsp;:</span>
-                    <div class="css-fv3lde">
-                      <span  class="css-po3aid" style="font-family: Mistral;">{username}</span>
-                    </div>
-                    <span class="css-1j983t3">{code}</span>
+        <div style="max-height: 400px; overflow-y: auto; border: 1px solid #eee;">
+          <table style="width: 100%;">
+            <tbody>
+              <tr data-qa="signature-row" class="css-1achfvd">
+                <td class="css-85irbq">
+                  <div class="css-13qgaex">
+                    <input
+                      type="radio"
+                      value="Mistral"
+                      bind:group={selectedValue}
+                    />
                   </div>
-                </div>
-              </td>
-              <td class="css-85irbq">
-                <div aria-hidden="true">
-                  <div data-qa="initials-text" class="css-18wjb7a">
-                    <span data-qa="initials-text-label" aria-hidden="true">DS</span>
-                    <span class="css-1pdgtej">Paraphé par&nbsp;:</span>
-                    <div class="css-fv3lde">
-                      <span data-qa="initials-text-font" class="css-po3aid" style="font-family: Mistral;">{paraphe}</span>
+                </td>
+                <td class="css-85irbq">
+                  <div >
+                    <div  class="css-12sxlyp">
+                      <span>Signé par&nbsp;:</span>
+                      <div class="css-fv3lde">
+                        <span  class="css-po3aid" style="font-family: Mistral;">{username}</span>
+                      </div>
+                      <span class="css-1j983t3">{code}</span>
                     </div>
                   </div>
-                </div>
-              </td>
-            </tr>
-            <tr data-qa="signature-row" class="css-1achfvd">
-              <td class="css-85irbq">
-                <div class="css-13qgaex">
-                  <input
-                    type="radio"
-                    value="Rage"
-                    bind:group={selectedValue}
-                  />
-                </div>
-              </td>
-              <td class="css-85irbq">
-                <div aria-hidden="true">
-                  <div data-qa="signature-text" class="css-12sxlyp">
-                    <span data-qa="signature-text-label">Signé par&nbsp;:</span>
-                    <div class="css-fv3lde">
-                      <span data-qa="signature-text-font" class="css-po3aid" style="font-family: Rage;">{username}</span>
-                    </div>
-                    <span data-qa="signature-text-user-id" aria-hidden="true" class="css-1j983t3">{code}</span>
-                  </div>
-                </div>
-              </td>
-              <td class="css-85irbq">
-                <div aria-hidden="true">
-                  <div data-qa="initials-text" class="css-18wjb7a">
-                    <span data-qa="initials-text-label" aria-hidden="true">DS</span>
-                    <span class="css-1pdgtej">Paraphé par&nbsp;:</span>
-                    <div class="css-fv3lde">
-                      <span data-qa="initials-text-font" class="css-po3aid" style="font-family: Rage;">{paraphe}</span>
+                </td>
+                <td class="css-85irbq">
+                  <div aria-hidden="true">
+                    <div data-qa="initials-text" class="css-18wjb7a">
+                      <span data-qa="initials-text-label" aria-hidden="true">DS</span>
+                      <span class="css-1pdgtej">Paraphé par&nbsp;:</span>
+                      <div class="css-fv3lde">
+                        <span data-qa="initials-text-font" class="css-po3aid" style="font-family: Mistral;">{paraphe}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </td>
-            </tr>
-            <tr data-qa="signature-row" class="css-1achfvd">
-              <td class="css-85irbq">
-                <div class="css-13qgaex">
-                  <input
-                    type="radio"
-                    value="cursive"
-                    bind:group={selectedValue}
-                  />
-                </div>
-              </td>
-              <td class="css-85irbq">
-                <div aria-hidden="true">
-                  <div data-qa="signature-text" class="css-12sxlyp">
-                    <span data-qa="signature-text-label">Signé par&nbsp;:</span>
-                    <div class="css-fv3lde">
-                      <span data-qa="signature-text-font" class="css-po3aid" style="font-family: cursive; font-style: italic;">{username}</span>
-                    </div>
-                    <span data-qa="signature-text-user-id" aria-hidden="true" class="css-1j983t3">{code}</span>
+                </td>
+              </tr>
+              <tr data-qa="signature-row" class="css-1achfvd">
+                <td class="css-85irbq">
+                  <div class="css-13qgaex">
+                    <input
+                      type="radio"
+                      value="Rage"
+                      bind:group={selectedValue}
+                    />
                   </div>
-                </div>
-              </td>
-              <td class="css-85irbq">
-                <div aria-hidden="true">
-                  <div data-qa="initials-text" class="css-18wjb7a">
-                    <span data-qa="initials-text-label" aria-hidden="true">DS</span>
-                    <span class="css-1pdgtej">Paraphé par&nbsp;:</span>
-                    <div class="css-fv3lde">
-                      <span data-qa="initials-text-font" class="css-po3aid" style="font-family: cursive; font-style: italic;">{paraphe}</span>
+                </td>
+                <td class="css-85irbq">
+                  <div aria-hidden="true">
+                    <div data-qa="signature-text" class="css-12sxlyp">
+                      <span data-qa="signature-text-label">Signé par&nbsp;:</span>
+                      <div class="css-fv3lde">
+                        <span data-qa="signature-text-font" class="css-po3aid" style="font-family: Rage;">{username}</span>
+                      </div>
+                      <span data-qa="signature-text-user-id" aria-hidden="true" class="css-1j983t3">{code}</span>
                     </div>
                   </div>
-                </div>
-              </td>
-            </tr>
-            <tr data-qa="signature-row" class="css-1achfvd">
-              <td class="css-85irbq">
-                <div class="css-13qgaex">
-                  <input
-                    type="radio"
-                    value="monospace"
-                    bind:group={selectedValue}
-                  />
-                </div>
-              </td>
-              <td class="css-85irbq">
-                <div aria-hidden="true">
-                  <div data-qa="signature-text" class="css-12sxlyp">
-                    <span data-qa="signature-text-label">Signé par&nbsp;:</span>
-                    <div class="css-fv3lde">
-                      <span data-qa="signature-text-font" class="css-po3aid" style="font-family: monospace; font-style: italic;">{username}</span>
-                    </div>
-                    <span data-qa="signature-text-user-id" aria-hidden="true" class="css-1j983t3">{code}</span>
-                  </div>
-                </div>
-              </td>
-              <td class="css-85irbq">
-                <div aria-hidden="true">
-                  <div data-qa="initials-text" class="css-18wjb7a">
-                    <span data-qa="initials-text-label" aria-hidden="true">DS</span>
-                    <span class="css-1pdgtej">Paraphé par&nbsp;:</span>
-                    <div class="css-fv3lde">
-                      <span data-qa="initials-text-font" class="css-po3aid" style="font-family: monospace; font-style: italic;">{paraphe}</span>
+                </td>
+                <td class="css-85irbq">
+                  <div aria-hidden="true">
+                    <div data-qa="initials-text" class="css-18wjb7a">
+                      <span data-qa="initials-text-label" aria-hidden="true">DS</span>
+                      <span class="css-1pdgtej">Paraphé par&nbsp;:</span>
+                      <div class="css-fv3lde">
+                        <span data-qa="initials-text-font" class="css-po3aid" style="font-family: Rage;">{paraphe}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                </td>
+              </tr>
+              <tr data-qa="signature-row" class="css-1achfvd">
+                <td class="css-85irbq">
+                  <div class="css-13qgaex">
+                    <input
+                      type="radio"
+                      value="cursive"
+                      bind:group={selectedValue}
+                    />
+                  </div>
+                </td>
+                <td class="css-85irbq">
+                  <div aria-hidden="true">
+                    <div data-qa="signature-text" class="css-12sxlyp">
+                      <span data-qa="signature-text-label">Signé par&nbsp;:</span>
+                      <div class="css-fv3lde">
+                        <span data-qa="signature-text-font" class="css-po3aid" style="font-family: cursive; font-style: italic;">{username}</span>
+                      </div>
+                      <span data-qa="signature-text-user-id" aria-hidden="true" class="css-1j983t3">{code}</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="css-85irbq">
+                  <div aria-hidden="true">
+                    <div data-qa="initials-text" class="css-18wjb7a">
+                      <span data-qa="initials-text-label" aria-hidden="true">DS</span>
+                      <span class="css-1pdgtej">Paraphé par&nbsp;:</span>
+                      <div class="css-fv3lde">
+                        <span data-qa="initials-text-font" class="css-po3aid" style="font-family: cursive; font-style: italic;">{paraphe}</span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr data-qa="signature-row" class="css-1achfvd">
+                <td class="css-85irbq">
+                  <div class="css-13qgaex">
+                    <input
+                      type="radio"
+                      value="monospace"
+                      bind:group={selectedValue}
+                    />
+                  </div>
+                </td>
+                <td class="css-85irbq">
+                  <div aria-hidden="true">
+                    <div data-qa="signature-text" class="css-12sxlyp">
+                      <span data-qa="signature-text-label">Signé par&nbsp;:</span>
+                      <div class="css-fv3lde">
+                        <span data-qa="signature-text-font" class="css-po3aid" style="font-family: monospace; font-style: italic;">{username}</span>
+                      </div>
+                      <span data-qa="signature-text-user-id" aria-hidden="true" class="css-1j983t3">{code}</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="css-85irbq">
+                  <div aria-hidden="true">
+                    <div data-qa="initials-text" class="css-18wjb7a">
+                      <span data-qa="initials-text-label" aria-hidden="true">DS</span>
+                      <span class="css-1pdgtej">Paraphé par&nbsp;:</span>
+                      <div class="css-fv3lde">
+                        <span data-qa="initials-text-font" class="css-po3aid" style="font-family: monospace; font-style: italic;">{paraphe}</span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr data-qa="signature-row" class="css-1achfvd">
+                <td class="css-85irbq">
+                  <div class="css-13qgaex">
+                    <input
+                      type="radio"
+                      value="'Lucida Handwriting', cursive"
+                      bind:group={selectedValue}
+                    />
+                  </div>
+                </td>
+                <td class="css-85irbq">
+                  <div aria-hidden="true">
+                    <div data-qa="signature-text" class="css-12sxlyp">
+                      <span data-qa="signature-text-label">Signé par&nbsp;:</span>
+                      <div class="css-fv3lde">
+                        <span data-qa="signature-text-font" class="css-po3aid" style="font-family: 'Lucida Handwriting', cursive;">{username}</span>
+                      </div>
+                      <span data-qa="signature-text-user-id" aria-hidden="true" class="css-1j983t3">{code}</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="css-85irbq">
+                  <div aria-hidden="true">
+                    <div data-qa="initials-text" class="css-18wjb7a">
+                      <span data-qa="initials-text-label" aria-hidden="true">DS</span>
+                      <span class="css-1pdgtej">Paraphé par&nbsp;:</span>
+                      <div class="css-fv3lde">
+                        <span data-qa="initials-text-font" class="css-po3aid" style="font-family: 'Lucida Handwriting', cursive;">{paraphe}</span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr data-qa="signature-row" class="css-1achfvd">
+                <td class="css-85irbq">
+                  <div class="css-13qgaex">
+                    <input
+                      type="radio"
+                      value="'Brush Script MT', cursive"
+                      bind:group={selectedValue}
+                    />
+                  </div>
+                </td>
+                <td class="css-85irbq">
+                  <div aria-hidden="true">
+                    <div data-qa="signature-text" class="css-12sxlyp">
+                      <span data-qa="signature-text-label">Signé par&nbsp;:</span>
+                      <div class="css-fv3lde">
+                        <span data-qa="signature-text-font" class="css-po3aid" style="font-family: 'Brush Script MT', cursive;">{username}</span>
+                      </div>
+                      <span data-qa="signature-text-user-id" aria-hidden="true" class="css-1j983t3">{code}</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="css-85irbq">
+                  <div aria-hidden="true">
+                    <div data-qa="initials-text" class="css-18wjb7a">
+                      <span data-qa="initials-text-label" aria-hidden="true">DS</span>
+                      <span class="css-1pdgtej">Paraphé par&nbsp;:</span>
+                      <div class="css-fv3lde">
+                        <span data-qa="initials-text-font" class="css-po3aid" style="font-family: 'Brush Script MT', cursive;">{paraphe}</span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+
+              <tr data-qa="signature-row" class="css-1achfvd">
+                <td class="css-85irbq">
+                  <div class="css-13qgaex">
+                    <input
+                      type="radio"
+                      value="'Brush Script MT', cursive"
+                      bind:group={selectedValue}
+                    />
+                  </div>
+                </td>
+                <td class="css-85irbq">
+                  <div aria-hidden="true">
+                    <div data-qa="signature-text" class="css-12sxlyp">
+                      <span data-qa="signature-text-label">Signé par&nbsp;:</span>
+                      <div class="css-fv3lde">
+                        <span data-qa="signature-text-font" class="css-po3aid" style="font-family: cursive; font-style: italic;transform: rotate(-5deg);">{username}</span>
+                      </div>
+                      <span data-qa="signature-text-user-id" aria-hidden="true" class="css-1j983t3">{code}</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="css-85irbq">
+                  <div aria-hidden="true">
+                    <div data-qa="initials-text" class="css-18wjb7a">
+                      <span data-qa="initials-text-label" aria-hidden="true">DS</span>
+                      <span class="css-1pdgtej">Paraphé par&nbsp;:</span>
+                      <div class="css-fv3lde">
+                        <span data-qa="initials-text-font" class="css-po3aid" style="ffont-family: cursive; font-style: italic;   display: inline-block;">{paraphe}</span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr data-qa="signature-row" class="css-1achfvd">
+                <td class="css-85irbq">
+                  <div class="css-13qgaex">
+                    <input
+                      type="radio"
+                      value="'Brush Script MT', cursive"
+                      bind:group={selectedValue}
+                    />
+                  </div>
+                </td>
+                <td class="css-85irbq">
+                  <div aria-hidden="true">
+                    <div data-qa="signature-text" class="css-12sxlyp">
+                      <span data-qa="signature-text-label">Signé par&nbsp;:</span>
+                      <div class="css-fv3lde">
+                        <span data-qa="signature-text-font" class="css-po3aid" style="font-family: 'Dancing Script', cursive;">{username}</span>
+                      </div>
+                      <span data-qa="signature-text-user-id" aria-hidden="true" class="css-1j983t3">{code}</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="css-85irbq">
+                  <div aria-hidden="true">
+                    <div data-qa="initials-text" class="css-18wjb7a">
+                      <span data-qa="initials-text-label" aria-hidden="true">DS</span>
+                      <span class="css-1pdgtej">Paraphé par&nbsp;:</span>
+                      <div class="css-fv3lde">
+                        <span data-qa="initials-text-font" class="css-po3aid" style="font-family: 'Dancing Script', cursive;">{paraphe}</span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr data-qa="signature-row" class="css-1achfvd">
+                <td class="css-85irbq">
+                  <div class="css-13qgaex">
+                    <input
+                      type="radio"
+                      value="'Segoe Script', cursive"
+                      bind:group={selectedValue}
+                    />
+                  </div>
+                </td>
+                <td class="css-85irbq">
+                  <div aria-hidden="true">
+                    <div data-qa="signature-text" class="css-12sxlyp">
+                      <span data-qa="signature-text-label">Signé par&nbsp;:</span>
+                      <div class="css-fv3lde">
+                        <span data-qa="signature-text-font" class="css-po3aid" 
+                              style="font-family: 'Segoe Script', cursive; text-shadow: 1px 1px 2px rgba(0,0,0,0.2);">
+                          {username}
+                        </span>
+                      </div>
+                      <span data-qa="signature-text-user-id" aria-hidden="true" class="css-1j983t3">{code}</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="css-85irbq">
+                  <div aria-hidden="true">
+                    <div data-qa="initials-text" class="css-18wjb7a">
+                      <span data-qa="initials-text-label" aria-hidden="true">DS</span>
+                      <span class="css-1pdgtej">Paraphé par&nbsp;:</span>
+                      <div class="css-fv3lde">
+                        <span data-qa="initials-text-font" class="css-po3aid" 
+                              style="font-family: 'Segoe Script', cursive;">
+                          {paraphe}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr data-qa="signature-row" class="css-1achfvd">
+                <td class="css-85irbq">
+                  <div class="css-13qgaex">
+                    <input type="radio" value="elegant-script" bind:group={selectedValue} />
+                  </div>
+                </td>
+                <td class="css-85irbq">
+                  <div>
+                    <div class="css-12sxlyp">
+                      <span>Signé par&nbsp;:</span>
+                      <div class="css-fv3lde">
+                        <span class="css-po3aid" style="
+                          font-family: 'Edwardian Script', cursive;
+                          font-size: 1em;
+                          text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+                          color: #222;
+                        ">{username}</span>
+                      </div>
+                      <span class="css-1j983t3">{code}</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="css-85irbq">
+                  <div>
+                    <div class="css-18wjb7a">
+                      <span aria-hidden="true">DS</span>
+                      <span class="css-1pdgtej">Paraphé par&nbsp;:</span>
+                      <div class="css-fv3lde">
+                        <span class="css-po3aid" style="
+                          font-family: 'Edwardian Script', cursive;
+                          font-size: 0.8em;
+                        ">{paraphe}</span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr data-qa="signature-row" class="css-1achfvd">
+                <td class="css-85irbq">
+                  <div class="css-13qgaex">
+                    <input type="radio" value="casual-tilted" bind:group={selectedValue} />
+                  </div>
+                </td>
+                <td class="css-85irbq">
+                  <div>
+                    <div class="css-12sxlyp">
+                      <span>Signé par&nbsp;:</span>
+                      <div class="css-fv3lde">
+                        <span class="css-po3aid" style="
+                          font-family: 'Comic Sans MS', cursive;
+                          display: inline-block;
+                          transform: rotate(-7deg);
+                          font-size: 1em;
+                          color: #333;
+                        ">{username}</span>
+                      </div>
+                      <span class="css-1j983t3">{code}</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="css-85irbq">
+                  <div>
+                    <div class="css-18wjb7a">
+                      <span aria-hidden="true">DS</span>
+                      <span class="css-1pdgtej">Paraphé par&nbsp;:</span>
+                      <div class="css-fv3lde">
+                        <span class="css-po3aid" style="
+                          font-family: 'Comic Sans MS', cursive;
+                          display: inline-block;
+                          transform: rotate(5deg);
+                        ">{paraphe}</span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr data-qa="signature-row" class="css-1achfvd">
+                <td class="css-85irbq">
+                  <div class="css-13qgaex">
+                    <input type="radio" value="professional-mono" bind:group={selectedValue} />
+                  </div>
+                </td>
+                <td class="css-85irbq">
+                  <div>
+                    <div class="css-12sxlyp">
+                      <span>Signé par&nbsp;:</span>
+                      <div class="css-fv3lde">
+                        <span class="css-po3aid" style="
+                          font-family: 'Courier New', monospace;
+                          font-weight: bold;
+                          text-decoration: underline;
+                          text-decoration-thickness: 2px;
+                          text-underline-offset: 4px;
+                          letter-spacing: 1px;
+                        ">{username}</span>
+                      </div>
+                      <span class="css-1j983t3">{code}</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="css-85irbq">
+                  <div>
+                    <div class="css-18wjb7a">
+                      <span aria-hidden="true">DS</span>
+                      <span class="css-1pdgtej">Paraphé par&nbsp;:</span>
+                      <div class="css-fv3lde">
+                        <span class="css-po3aid" style="
+                          font-family: 'Courier New', monospace;
+                          font-weight: bold;
+                        ">{paraphe}</span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr data-qa="signature-row" class="css-1achfvd">
+                <td class="css-85irbq">
+                  <div class="css-13qgaex">
+                    <input type="radio" value="artistic-brush" bind:group={selectedValue} />
+                  </div>
+                </td>
+                <td class="css-85irbq">
+                  <div>
+                    <div class="css-12sxlyp">
+                      <span>Signé par&nbsp;:</span>
+                      <div class="css-fv3lde">
+                        <span class="css-po3aid" style="
+                          font-family: 'Brush Script MT', cursive;
+                          font-size: 1em;
+                          background: linear-gradient(to right, #555, #000);
+                          -webkit-background-clip: text;
+                          -webkit-text-fill-color: transparent;
+                          display: inline-block;
+                          padding-bottom: 2px;
+                          border-bottom: 1px solid #999;
+                        ">{username}</span>
+                      </div>
+                      <span class="css-1j983t3">{code}</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="css-85irbq">
+                  <div>
+                    <div class="css-18wjb7a">
+                      <span aria-hidden="true">DS</span>
+                      <span class="css-1pdgtej">Paraphé par&nbsp;:</span>
+                      <div class="css-fv3lde">
+                        <span class="css-po3aid" style="
+                          font-family: 'Brush Script MT', cursive;
+                          font-size: 0.8em;
+                        ">{paraphe}</span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr data-qa="signature-row" class="css-1achfvd">
+                <td class="css-85irbq">
+                  <div class="css-13qgaex">
+                    <input type="radio" value="modern-calligraphy" bind:group={selectedValue} />
+                  </div>
+                </td>
+                <td class="css-85irbq">
+                  <div>
+                    <div class="css-12sxlyp">
+                      <span>Signé par&nbsp;:</span>
+                      <div class="css-fv3lde">
+                        <span class="css-po3aid" style="
+                          font-family: 'Dancing Script', cursive;
+                          color: #222;
+                          text-shadow: 1px 1px 0px rgba(0,0,0,0.1),
+                                      2px 2px 0px rgba(0,0,0,0.1);
+                          line-height: 1;
+                        ">{username}</span>
+                      </div>
+                      <span class="css-1j983t3">{code}</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="css-85irbq">
+                  <div>
+                    <div class="css-18wjb7a">
+                      <span aria-hidden="true">DS</span>
+                      <span class="css-1pdgtej">Paraphé par&nbsp;:</span>
+                      <div class="css-fv3lde">
+                        <span class="css-po3aid" style="
+                          font-family: 'Dancing Script', cursive;
+                          font-size: 1em;
+                        ">{paraphe}</span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr data-qa="signature-row" class="css-1achfvd">
+                <td class="css-85irbq">
+                  <div class="css-13qgaex">
+                    <input type="radio" value="stamped-effect" bind:group={selectedValue} />
+                  </div>
+                </td>
+                <td class="css-85irbq">
+                  <div>
+                    <div class="css-12sxlyp">
+                      <span>Signé par&nbsp;:</span>
+                      <div class="css-fv3lde">
+                        <span class="css-po3aid" style="
+                          font-family: 'Times New Roman', serif;
+                          font-weight: bold;
+                          border: 2px solid #000;
+                          border-radius: 4px;
+                          padding: 2px 6px;
+                          display: inline-block;
+                          transform: rotate(-2deg);
+                        ">{username}</span>
+                      </div>
+                      <span class="css-1j983t3">{code}</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="css-85irbq">
+                  <div>
+                    <div class="css-18wjb7a">
+                      <span aria-hidden="true">DS</span>
+                      <span class="css-1pdgtej">Paraphé par&nbsp;:</span>
+                      <div class="css-fv3lde">
+                        <span class="css-po3aid" style="
+                          font-family: 'Times New Roman', serif;
+                          font-weight: bold;
+                        ">{paraphe}</span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
         
-        <p>Selected Value: {selectedValue}</p>
+<br>
+        <div style="text-align: left;">
+          <label >Select a color of signature</label>
+            <input type="color" bind:value={selectedColor} on:input={handleColorChange} />
+        </div>
+        <div 
+            class="preview" 
+            style="background-color: {selectedColor};">
+            Color selected: {selectedColor}
+        </div>
+        <br>
+
+        <div style="text-align: left;">
+          <label >Select a color of border</label>
+            <input type="color" bind:value={selectedColorBorder} on:input={handleColorChangeBorder} />
+        </div>
+        <div 
+            class="preview" 
+            style="background-color: {selectedColorBorder};">
+            Color selected: {selectedColorBorder}
+        </div>
 
         <div class="create_account" on:click={goToHome}>Back</div>
         <div class="actions">
@@ -377,7 +827,7 @@
       />
     </div>
   {/if}
-  <div class="sign-block" >
+  <div class="sign-block" style="height: 64px;width: 220px;position: absolute;top: -70px;" >
     <div class="css-12sxlyp">
       <span>Signé par&nbsp;:</span>
       <div class="css-fv3lde">
@@ -389,6 +839,16 @@
 </main>
 
 <style>
+
+    .preview {
+        padding: 10px;
+        border: 1px solid #ccc;
+        width: 150px;
+        text-align: center;
+        color: #fff;
+        border-radius: 8px;
+    }
+
   .container {
     display: flex;
     justify-content: center;
@@ -431,7 +891,7 @@
     color: #333;
   }
 
-  input {
+  .input-group input {
     width: 100%;
     padding: 0.5rem;
     border: 1px solid #3ca939;
@@ -519,12 +979,25 @@
     top: 4px;
     width: 20px;
   }
+  .css-12sxlyp::after {
+    content: "";
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    right: 0px;
+    border-right: 2px dashed rgb(0, 92, 185);
+    width: 30%;
+    border-bottom: 2px dashed rgb(0, 92, 185);
+    border-top: 2px dashed rgb(0, 92, 185);
+    border-bottom-right-radius: 5px;
+    border-top-right-radius: 5px;
+}
   .css-fv3lde {
     -webkit-box-align: center;
     align-items: center;
     display: flex;
     padding: 10px;
-    font-size: 24px;
+    font-size: 18px;
   }
   .css-1j983t3 {
     display: block;
@@ -615,6 +1088,21 @@
     position: absolute;
     top: 4px;
     width: 20px;
+}
+
+.css-18wjb7a::after {
+    content: "";
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    height: calc(100% - 8px);
+    right: 0px;
+    border-right: 2px dashed rgb(0, 92, 185);
+    width: 30%;
+    border-bottom: 2px dashed rgb(0, 92, 185);
+    border-top: 2px dashed rgb(0, 92, 185);
+    border-bottom-right-radius: 5px;
+    border-top-right-radius: 5px;
 }
 
 </style>

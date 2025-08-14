@@ -1,64 +1,8 @@
-<!-- 
-<script>
-  import { onMount } from "svelte";
-  let file;
 
-  async function uploadFile() {
-    if (!file) {
-      alert("Please select a file");
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      const response = await fetch("http://192.168.1.13:8000/api/convert-word-to-pdf", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to convert file");
-      }
-
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "converted.pdf";
-      link.click();
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error(error);
-      alert("An error occurred while converting the file");
-    }
-  }
-</script>
-
-<div>
-  <label>
-    Upload Word File:
-    <input type="file" accept=".doc, .docx" on:change="{(e) => (file = e.target.files[0])}" />
-  </label>
-  <button on:click="{uploadFile}">Upload and Convert</button>
-</div> -->
-
-<!-- <script>
-  import Portal from "./Portal.svelte";
-</script>
-
-<Portal>
-  <div class="fixed z-10 top-0 left-0 right-0 h-12">
-    <slot />
-  </div>
-</Portal> -->
 
 <script>
   import { onMount } from "svelte";
-  import { fly } from "svelte/transition";
+  import { fly, scale } from "svelte/transition";
   import Tailwind from "./Tailwind.svelte";
   import PDFPage from "./PDFPage.svelte";
   import Image from "./Image.svelte";
@@ -72,6 +16,7 @@
   import Register from './Register.svelte';
   import ProfilePage from './Profile.svelte';
   import html2canvas from "html2canvas";
+  import LogoMenu from "./components/LogoMenu.svelte";
 
   import {
     readAsArrayBuffer,
@@ -81,7 +26,22 @@
   } from "./utils/asyncReader.js";
   import { ggID } from "./utils/helper.js";
   import { save } from "./utils/PDF.js";
-  
+  	import { currentLang,translations, translateAll } from './stores/translation.js';
+    
+	let loadingTrans = false;
+
+	const textsToTranslate = [
+		'Choose File', 'Save', 'Profile', 'My files', 'File name'
+	];
+    onMount(() => {
+		translateAll(textsToTranslate, 'en', $currentLang, val => loadingTrans = val);
+	});
+
+	// Reactively watch language changes
+	$: if ($currentLang) {
+		translateAll(textsToTranslate, 'en', $currentLang, val => loadingTrans = val);
+	}
+  let pdfPages = [];
   const genID = ggID();
   let pdfFile;
   let pdfName = "";
@@ -97,18 +57,29 @@
   let detailsPage;
   let showTicket=true;
   let showTicketDate=true;
+  let btnText="Sign"
 
   let username = localStorage.getItem("username");
   let email = localStorage.getItem("email");
   let codeSign = localStorage.getItem("codeSign");
   let initial = localStorage.getItem("initial");
   let font = localStorage.getItem("font");
-
-  
+  let selectedColor = localStorage.getItem("selectedColor");
+  let selectedColorBorder = localStorage.getItem("selectedColorBorder");
+  let colorSign = '#000';
+  let colorSignBorder = '#2473c3';
+  let autoChecked =false;
+let zoomLevel = 100;
 
   // for test purpose
   onMount(async () => {
     try {
+        if (selectedColor) {
+          colorSign=selectedColor;
+        }
+         if (selectedColorBorder) {
+          colorSignBorder=selectedColorBorder;
+        }
       const res = await fetch("/test.pdf");
       const pdfBlob = await res.blob();
       await addPDF(pdfBlob);
@@ -122,50 +93,181 @@
     }
   });
   function handleInitialsClick() {
-    console.log("ini div clicked");
+    if (countFile==0) {
+      message="You must upload file first";
+      showMessage=true;
+    }else{
+      const htmlElement = document.querySelector(".sign-block-two");
+      addHtmlBlockAsImage(htmlElement,'sign');
+    }
+
+  }
+  function addInitials() {
+      if (countFile==0) {
+    message="You must upload file first";
+    showMessage=true;
+  }else{
     const htmlElement = document.querySelector(".sign-block-two");
-    addHtmlBlockAsImage(htmlElement,'sign');
+    addHtmlBlockInAllPages(htmlElement,'sign');
+  }
+
   }
   function handleSignClick() {
-    console.log("sign div clicked");
-
+  if (countFile==0) {
+    message="You must upload file first";
+    showMessage=true;
+  }else{
     const htmlElement = document.querySelector(".sign-block");
     addHtmlBlockAsImage(htmlElement,'sign');
-}
-function handleManuelleClick() {
-    console.log("Initials div clicked");
-    onAddDrawing();
   }
-  
-  // async function onUploadPDF(e) {
-  //   const files = e.target.files || (e.dataTransfer && e.dataTransfer.files);
-  //   const file = files[0];
-  //   if (!file || file.type !== "application/pdf") return;
-  //   selectedPageIndex = -1;
-  //   try {
-  //     await addPDF(file);
-  //     selectedPageIndex = 0;
-  //   } catch (e) {
-  //     console.log(e);
-  //   }
-  // }
-  // async function addPDF(file) {
-  //   try {
-  //     const pdf = await readAsPDF(file);
-  //     pdfName = file.name;
-  //     pdfFile = file;
-  //     const numPages = pdf.numPages;
-  //     pages = Array(numPages)
-  //       .fill()
-  //       .map((_, i) => pdf.getPage(i + 1));
-  //     allObjects = pages.map(() => []);
-  //     pagesScale = Array(numPages).fill(1);
-  //   } catch (e) {
-  //     console.log("Failed to add pdf.");
-  //     throw e;
-  //   }
-  // }
+
+  }
+  function handleManuelleClick() {
+        if (countFile==0) {
+      message="You must upload file first";
+      showMessage=true;
+    }else{
+      onAddDrawing();
+    }
+     
+    }
+      let showModalStamp=false;
+
+  function handleStampClick(){
+        if (countFile==0) {
+      message="You must upload file first";
+      showMessage=true;
+    }else{
+      showModalStamp=true;
+
+    }
+  }
+  async function onUploadStamp() {
+  if (selectedPageIndex < 0) return;
+
+  try {
+    const response = await fetch('./images/stamp.png');
+    const blob = await response.blob();
+    const img = await createImageBitmap(blob);
+
+    const paddingTop = 15;
+    const paddingBottom = 15;
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height + paddingTop + paddingBottom;
+
+    const ctx = canvas.getContext('2d');
+
+    // Clear background
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw image with vertical offset
+    ctx.drawImage(img, 0, paddingTop);
+
+    // Make white pixels transparent
+    const imageData = ctx.getImageData(0, paddingTop, canvas.width, img.height);
+    const data = imageData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i], g = data[i + 1], b = data[i + 2];
+      if (r > 240 && g > 240 && b > 240) data[i + 3] = 0;
+    }
+    ctx.putImageData(imageData, 0, paddingTop);
+
+    // Add today's date (top-center)
+    const today = new Date().toLocaleDateString();
+    ctx.font = 'bold 10px Arial';
+    ctx.fillStyle = 'black';
+    ctx.textBaseline = 'top';
+    const dateTextWidth = ctx.measureText(today).width;
+    ctx.fillText(today, (canvas.width - dateTextWidth) / 2, 5);
+
+    // Add identifier below image (bottom-center)
+    const identifier = '558Tue5d38d';
+    const idTextWidth = ctx.measureText(identifier).width;
+    ctx.textBaseline = 'bottom';
+    ctx.font = 'bold 10px Arial';
+    ctx.fillText(identifier, (canvas.width - idTextWidth) / 2, canvas.height - 5);
+
+    // Convert canvas to file
+    const modifiedBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    const file = new File([modifiedBlob], 'stamp-modified.png', { type: 'image/png' });
+
+    addImage(file);
+
+  } catch (e) {
+    console.log('Failed to load or modify image', e);
+  }
+}
+
+
+  function handleSignFunc(){
+    selectedPageIndex= pages.length-1;
+    let type= localStorage.getItem("typeSign");
+    
+    if (type=="auto") {
+        handleSignClick();
+    }
+    if (type=="manuel") {
+      autoChecked=false;
+      handleManuelleClick();
+    }
+    if (type=="initial") {
+      autoChecked=false;
+      handleManuelleClick();
+    }
+    if (type=="initialAuto") {
+      handleInitialsClick();
+    }
+    if (type=="auto+manuel") {
+      autoChecked=true;
+      handleManuelleClick();
+    }
+     showTicket=false;
+  }
+
+  function handleDeletePage(event) {
+    const { index } = event.detail;
+    
+    // Remove the page from all relevant arrays
+    pages = pages.filter((_, i) => i !== index);
+    // allObjects = allObjects.filter((_, i) => i !== index);
+    pagesScale = pagesScale.filter((_, i) => i !== index);
+    
+    // Adjust selected page index if needed
+    if (selectedPageIndex >= index) {
+      selectedPageIndex = Math.max(0, selectedPageIndex - 1);
+    }
+  }
+  let showModalReset=false;
+  let resetIndex;
+  function handleResetPage(event) {
+    showModalReset=true;
+    const { index } = event.detail;
+    resetIndex=index;
+    
+    
+  }
+  function handleChoiceReset(choice) {
+    userChoice = choice;
+    showModalReset = false;
+    showModal = false;
+    if (choice == "yes") {
+      allObjects[resetIndex]=[];
+    }
+  }
+    function handleChoiceStamp(choice) {
+    showModalStamp = false;
+    if (choice == "default") {
+        onUploadStamp();
+    }
+    // if (choice == "upload") {
+    //     onUploadImage(e);
+    // }
+  }
+
   let countFile=0;
+  let loading=false;
+let pdfText=[];
   async function onUploadFile(e) {
   countFile = 0;
   const files = e.target.files || (e.dataTransfer && e.dataTransfer.files);
@@ -176,57 +278,45 @@ function handleManuelleClick() {
     countFile = 1;
   }
 
+
   try {
     if (file.type === "application/pdf") {
-      console.log("PDF file:", file);
       await addPDF(file);
+      
+
     } else if (file.type.includes("word") || file.type.includes("powerpoint")|| file.type.includes("officedocument")) {
-      console.log("Word file detected, converting...");
+      loading=true;
       const convertedFile = await convertWordToPdf(file);
-      console.log("Converted file:", convertedFile);
       if (convertedFile) {
         await addPDF(convertedFile);
+        setTimeout(() => {
+          loading=false;
+        });
       }
+      file=convertedFile;
     }
-    console.log({detailsPage});
+    
+    const formData = new FormData();
+    formData.append('pdf', file);
+    formData.append('target', $currentLang);
+    formData.append('source', 'fr'); // or auto-detect if needed
+
+    const res = await fetch('http://192.168.1.8:8000/api/extract-pdf-translated', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await res.json();
+    pdfText = data.pages;
+    console.log(pdfText[0].pageNumber);
+    
 
   } catch (e) {
     console.error(e);
-    alert("An error occurred while processing the file");
   }
 }
 
 
-//   async function onUploadFile(e) {
-//     countFile=0;
-//   const files = e.target.files || (e.dataTransfer && e.dataTransfer.files);
-//   const file = files[0];
-//   if (!file) {return} else { countFile=1};
-
-//   try {
-//     // addPowerPointFile(file);
-//     if (file.type === "application/pdf") {
-//       console.log('pdfff');
-//       await addPDF(file); // Existing PDF handling logic
-//     } else if (file.type.includes("word")) {
-//       let convertedFile = convertWordToPdf(file);
-//       console.log('convertedFile ', convertedFile);
-
-//       await addPDF(convertedFile); 
-
-//       // await addWordFile(file); // New Word file handling
-//     } else if (file.type.includes("powerpoint")) {
-//       console.log('powerpoint');
-//       await addPowerPointFile(file); // New PowerPoint file handling
-//     } else {
-//       console.log('onUploadImage');
-      
-//       onUploadImage(e)
-//     }
-//   } catch (e) {
-//     console.log(e);
-//   }
-// }
 
 // this is convertWordToPdf function witch you sended to me
 async function convertWordToPdf(wordFile) {
@@ -234,7 +324,7 @@ async function convertWordToPdf(wordFile) {
   formData.append("file", wordFile);
 
   try {
-    const response = await fetch("http://192.168.1.12:8000/api/convert-word-to-pdf", {
+    const response = await fetch("http://192.168.1.8:8000/api/convert-word-to-pdf", {
       method: "POST",
       body: formData,
     });
@@ -250,14 +340,12 @@ async function convertWordToPdf(wordFile) {
       type: blob.type,
     });
 
-    console.log("Converted file:", fileResponse);
 
     // Optional: Validate the PDF structure by passing it through PDF.js
     try {
       await readAsPDF(fileResponse).then(res => setTimeout(() => {addTextDate()}
     ));
      
-      console.log("PDF is valid");
     } catch (validationError) {
       console.error("PDF validation failed:", validationError);
       throw new Error("Invalid PDF structure");
@@ -273,112 +361,93 @@ async function convertWordToPdf(wordFile) {
 let pageWidth;
 let pageHeight;
 
-// this is my old function addPDF 
+
 async function addPDF(file) {
   try {
-    
     const pdf = await readAsPDF(file);
     pdfName = file.name;
     pdfFile = file;
     const numPages = pdf.numPages;
-    pages = Array(numPages)
+
+    // Store the actual page objects
+    pdfPages = Array(numPages)
       .fill()
       .map((_, i) => pdf.getPage(i + 1));
+
+    // Wait for the first page to resolve to get size
+    const firstPage = await pdf.getPage(1);
+    const viewport = firstPage.getViewport({ scale: 1 });
+
+    // Use actual PDF page size
+    pageWidth = viewport.width;
+    pageHeight = viewport.height;
+
+    pages = [...pdfPages];
     allObjects = pages.map(() => []);
     pagesScale = Array(numPages).fill(1);
-    pageWidth = window.innerWidth;  
-    pageHeight = window.innerHeight;
-    setTimeout(() => {addTextDate()});
+
   } catch (e) {
-    console.log("Failed to add pdf.");
     throw e;
   }
 }
 
-
-// import mammoth from '/path-to-your-public-folder/mammoth.browser.js';
+let message='';
+let showModal = false;
+let showMessage= false;
+  let currentStep = 1;
   
-  // async function addWordFile(file) {
-    // const reader = new FileReader();
+  const totalSteps = 3;
   
-    // reader.onload = async function(event) {
-    //   const arrayBuffer = event.target.result;
-
-    //   // Convert Word (.docx) to HTML using Mammoth
-    //   const { value: html } = await mammoth.convertToHtml({ arrayBuffer });
-
-    //   // Create a canvas and render the HTML as an image
-    //   renderHTMLToCanvas(html);
-    // };
+  function nextStep() {
+    if (currentStep < totalSteps) {
+      currentStep += 1;
+    }
+  }
   
-    // reader.readAsArrayBuffer(file);
-  // }
-  // import mammoth from "mammoth";
+  function prevStep() {
+    if (currentStep > 1) {
+      currentStep -= 1;
+    }
+  }
+  
+  function closeModal() {
+    showModal = false;
+    currentStep = 1; // Reset to first step when closing
+  }
+  function closeModalMessage() {
+    showMessage = false;
+  }
+  
+let showModal2 = false;
+  let userChoice = null;
+  function handleStartClick(sign) {
+    localStorage.setItem("typeSign", sign);
+    if (sign=="initial"||sign == "initialAuto") {
+            btnText="Initial";
+    }else       btnText="Sign";
 
-  async function addWordFile(file) {
-  // try {
-  //   const reader = new FileReader();
+  }
 
-  //   reader.onload = async function () {
-  //     const arrayBuffer = reader.result;
-
-  //     // Extract raw text from Word document
-  //     const { value: text } = await mammoth.extractRawText({ arrayBuffer });
-
-  //     // Create a paginated HTML container
-  //     const pagesContainer = document.createElement("div");
-  //     pagesContainer.style.width = "8.5in"; // Letter size width
-  //     pagesContainer.style.height = "11in"; // Letter size height
-  //     pagesContainer.style.overflow = "hidden";
-  //     pagesContainer.style.position = "absolute";
-  //     pagesContainer.style.visibility = "hidden";
-  //     pagesContainer.style.whiteSpace = "pre-wrap";
-  //     pagesContainer.style.fontFamily = "Arial, sans-serif";
-  //     pagesContainer.style.fontSize = "12pt";
-  //     pagesContainer.style.lineHeight = "1.5";
-  //     pagesContainer.style.padding = "1in"; // Simulate Word document margins
-
-  //     document.body.appendChild(pagesContainer);
-
-  //     // Add extracted text to the container
-  //     pagesContainer.textContent = text;
-
-  //     // Calculate page dimensions
-  //     const pageHeight = pagesContainer.offsetHeight;
-
-  //     // Convert each "page" to an image
-  //     const images = [];
-  //     const totalHeight = pagesContainer.scrollHeight;
-
-  //     for (let i = 0; i < Math.ceil(totalHeight / pageHeight); i++) {
-  //       pagesContainer.scrollTop = i * pageHeight;
-
-  //       const canvas = await html2canvas(pagesContainer, {
-  //         windowWidth: pagesContainer.offsetWidth,
-  //         windowHeight: pageHeight,
-  //         useCORS: true, // Ensure proper rendering for external resources
-  //       });
-
-  //       images.push(canvas.toDataURL("image/png"));
-  //     }
-
-  //     document.body.removeChild(pagesContainer);
-
-  //     // Use images as individual pages
-  //     console.log("Generated Images:", images);
-
-  //     const numPages = images.length;
-  //     pages = images; // Store the images as your "pages"
-  //     allObjects = Array(numPages).fill([]); // Initialize empty objects for each page
-  //     pagesScale = Array(numPages).fill(1); // Set scale for each page
-  //   };
-
-  //   reader.readAsArrayBuffer(file);
-  // } catch (e) {
-  //   console.error("Failed to add Word file:", e);
-  // }
-}
-
+  function handleAllInitialsClick() {
+    if (countFile==0) {
+      message="You must upload file first";
+      showMessage=true;
+    }else{
+      showModal2 = true;
+    }
+    
+  }
+  function handleChoice(choice) {
+    userChoice = choice;
+    showModal2 = false;
+    if (choice == "yes") {
+      addInitials();
+      scrollToPage(pages.length-1)
+    }
+    selectedPageIndex= pages.length-1;
+    scrollToPage(pages.length-1)
+    closeModal()
+  }
 function renderHTMLToCanvas(htmlContent) {
   // Use DOMParser to convert HTML string into a DOM
   const parser = new DOMParser();
@@ -487,30 +556,87 @@ function handleImage(file) {
   reader.readAsDataURL(file);
 }
 
-  async function onUploadImage(e) {
-    const file = e.target.files[0];
-    if (file && selectedPageIndex >= 0) {
-      addImage(file);
+async function onUploadImage(e) {
+  const file = e.target.files[0];
+  if (!file || selectedPageIndex < 0) return;
+
+  try {
+    const img = await createImageBitmap(file);
+
+    const paddingTop = 15;
+    const paddingBottom = 15;
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height + paddingTop + paddingBottom;
+
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw the uploaded image
+    ctx.drawImage(img, 0, paddingTop);
+
+    // Make white pixels transparent (optional)
+    const imageData = ctx.getImageData(0, paddingTop, canvas.width, img.height);
+    const data = imageData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i], g = data[i + 1], b = data[i + 2];
+      if (r > 240 && g > 240 && b > 240) data[i + 3] = 0;
     }
-    e.target.value = null;
+    ctx.putImageData(imageData, 0, paddingTop);
+
+    // Add today's date at top-center
+    const today = new Date().toLocaleDateString();
+    ctx.font = 'bold 10px Arial';
+    ctx.fillStyle = 'black';
+    ctx.textBaseline = 'top';
+    const dateTextWidth = ctx.measureText(today).width;
+    ctx.fillText(today, (canvas.width - dateTextWidth) / 2, 2);
+
+    // Add identifier at bottom-center
+    const identifier = '558Tue5d38d';
+    const idTextWidth = ctx.measureText(identifier).width;
+    ctx.textBaseline = 'bottom';
+    ctx.font = 'bold 10px Arial';
+    ctx.fillText(identifier, (canvas.width - idTextWidth) / 2, canvas.height - 2);
+
+    // Convert canvas to File
+    const modifiedBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    const modifiedFile = new File([modifiedBlob], file.name.replace(/\.\w+$/, '-modified.png'), {
+      type: 'image/png'
+    });
+
+    addImage(modifiedFile);
+  } catch (err) {
+    console.error('Failed to process uploaded image:', err);
   }
+
+  // Reset input
+  e.target.value = null;
+}
+
   async function addImage(file) {
-    try {
-      // get dataURL to prevent canvas from tainted
+  try {
       const url = await readAsDataURL(file);
       const img = await readAsImage(url);
       const id = genID();
       const { width, height } = img;
+
+      // Align image to bottom-right corner
+      const x = pageWidth - width-15;
+      const y = pageHeight - height-15;
+      showModalStamp = false;
+
       const object = {
         id,
         type: "image",
         width,
         height,
-        x: 0,
-        y: 0,
+        x,
+        y,
         payload: img,
         file
       };
+
       allObjects = allObjects.map((objects, pIndex) =>
         pIndex === selectedPageIndex ? [...objects, object] : objects
       );
@@ -595,16 +721,30 @@ function handleImage(file) {
       pIndex === selectedPageIndex ? [...objects, object] : objects
     );
   }
-  function scrollToPage(pageIndex) {
-    const scrollOffset = 300 * pageIndex; // Calculate scroll offset
-    window.scrollTo({
-      top: scrollOffset,
-      behavior: "smooth"
-    });
+  function scrollToPage(index) {
+    const pageElement = document.getElementById(`page-${index}`);
+    if (pageElement) {
+      pageElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+    }
   }
   function onAddDrawing() {
     if (selectedPageIndex >= 0) {
-      addingDrawing = true;
+      const imgUrl = localStorage.getItem(`savedImage_manuelle`);
+      const imgUrlInitial = localStorage.getItem(`savedImage_initial`);
+      if (localStorage.getItem("typeSign")=='initial') {
+        loadSavedImage('initial');
+      }else
+      if (imgUrl) {
+        loadSavedImage('manuelle');
+      }else if(imgUrlInitial){
+        loadSavedImage('initial');
+      }else{
+        addingDrawing = true;
+      }
+      
     }
   }
 //   function addDrawing(originWidth, originHeight, path, scale = 1) {
@@ -627,7 +767,6 @@ function handleImage(file) {
 // }
 
 function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, strokeWidth) {
-  console.log('strokeWidth: ',strokeWidth);
   const id = genID();
   const object = {
     id,
@@ -654,6 +793,7 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
   }
   function selectPage(index) {
     selectedPageIndex = index;
+    scrollToPage(index);
   }
   function updateObject(objectId, payload) {
     allObjects = allObjects.map((objects, pIndex) =>
@@ -709,17 +849,9 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
     profile = false;
     logoutMenu = false;
   }
-
-  async function addHtmlBlockAsImage(htmlElement,typeSign) {
-  try {
-    // Render HTML to canvas with transparent background
-    const canvas = await html2canvas(htmlElement, {
-      backgroundColor: null, // Ensures transparency
-      useCORS: true, // Handles cross-origin images if any
-    });
-
-    // Convert canvas to data URL (image)
-    const imgUrl = canvas.toDataURL("image/png");
+  async function loadSavedImage(typeSign) {
+  const imgUrl = localStorage.getItem(`savedImage_${typeSign}`);
+  if (!imgUrl) return null;
 
     // Create a new image object
     const img = await readAsImage(imgUrl); // Assume you have a function to handle this
@@ -732,12 +864,48 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
       type: "image",
       width,
       height,
-      x: typeSign=='initial' ? 0 : pageHeight-pageHeight/1.7,
-      y: pageWidth-pageWidth/1.9,
+      x: (typeSign=='initial'|| btnText=='Initial') ? 0 :  pageWidth - width-15,
+      y: pageHeight - height-15,
       payload: img,
       file: imgUrl // Optional: If you want to store the image data
     };
-console.log('pageWidth', pageWidth-pageWidth/2);
+
+    // Add the image object to the current page's objects
+    allObjects = allObjects.map((objects, pIndex) =>
+      pIndex === selectedPageIndex ? [...objects, object] : objects
+    );
+}
+  async function addHtmlBlockAsImage(htmlElement,typeSign) {
+  try {
+    // Render HTML to canvas with transparent background
+    const canvas = await html2canvas(htmlElement, {
+      backgroundColor: null, // Ensures transparency
+      useCORS: true, // Handles cross-origin images if any
+    });
+
+    // Convert canvas to data URL (image)
+    const imgUrl = canvas.toDataURL("image/png");
+    // if (typeSign!="initial") {
+      localStorage.setItem(`savedImage_${typeSign}`, imgUrl);
+    // }
+
+    // Create a new image object
+    const img = await readAsImage(imgUrl); // Assume you have a function to handle this
+    const id = genID();
+    
+    const { width, height } = img;
+
+    // Create the object for the PDF
+    const object = {
+      id,
+      type: "image",
+      width,
+      height,
+      x: typeSign=='initial'|| btnText=='Initial' ? 0 :  pageWidth - width-15,
+      y: pageHeight - height-15,
+      payload: img,
+      file: imgUrl // Optional: If you want to store the image data
+    };
 
     // Add the image object to the current page's objects
     allObjects = allObjects.map((objects, pIndex) =>
@@ -747,6 +915,49 @@ console.log('pageWidth', pageWidth-pageWidth/2);
     console.log("Failed to add HTML block as image.", e);
   }
 }
+async function addHtmlBlockInAllPages(htmlElement, typeSign) {
+  try {
+    // Render HTML to full-size canvas
+    const originalCanvas = await html2canvas(htmlElement, {
+      backgroundColor: null,
+      useCORS: true,
+    });
+
+    // Create a smaller canvas (1/2 size)
+    const scaleFactor = 0.5;
+    const scaledCanvas = document.createElement("canvas");
+    scaledCanvas.width = originalCanvas.width * scaleFactor;
+    scaledCanvas.height = originalCanvas.height * scaleFactor;
+
+    const ctx = scaledCanvas.getContext("2d");
+    ctx.scale(scaleFactor, scaleFactor);
+    ctx.drawImage(originalCanvas, 0, 0);
+
+    // Get the scaled image as data URL
+    const imgUrl = scaledCanvas.toDataURL("image/png");
+    const img = await readAsImage(imgUrl); // your custom function to load image
+
+    const id = genID();
+
+    const object = {
+      id,
+      type: "image",
+      width: img.width / 1.5,
+      height: img.height,
+      x: 5,
+      y: pageHeight - height-15,
+      payload: img,
+      file: imgUrl,
+    };
+
+    allObjects = allObjects.map((objects, pIndex) =>
+      pIndex < allObjects.length - 1 ? [...objects, object] : objects
+    );
+  } catch (e) {
+    console.log("Failed to add HTML block as image.", e);
+  }
+}
+
 </script>
 
 <svelte:window
@@ -760,14 +971,14 @@ console.log('pageWidth', pageWidth-pageWidth/2);
 
 
   <main class="flex flex-row min-h-screen bg-gray-100">
-    <LeftMenu class="flex-shrink-0" on:initialsClicked={handleInitialsClick}  on:manuelleClicked={handleManuelleClick}  on:signClicked={handleSignClick} 
+    <LeftMenu class="flex-shrink-0" on:initialsClicked={handleInitialsClick} on:allInitialsClicked={handleAllInitialsClick}  on:manuelleClicked={handleManuelleClick} on:StampClicked={handleStampClick}  on:signClicked={handleSignClick} 
     on:emailClicked={()=>  { if(selectedPageIndex >= 0){ addTextEmail(); }}} 
     on:nameClicked={() => {if (selectedPageIndex >= 0) {addTextName(); }}} />
     <ProfilePage on:goToHome={handleGoToHome}/>
   </main>
   {:else}
   <main class="flex flex-row min-h-screen bg-gray-100">
-    <LeftMenu class="flex-shrink-0" on:initialsClicked={handleInitialsClick} on:manuelleClicked={handleManuelleClick} on:signClicked={handleSignClick}
+    <LeftMenu class="flex-shrink-0" on:initialsClicked={handleInitialsClick} on:allInitialsClicked={handleAllInitialsClick} on:manuelleClicked={handleManuelleClick} on:StampClicked={handleStampClick} on:signClicked={handleSignClick}
       on:emailClicked={()=>  { if(selectedPageIndex >= 0){ addTextEmail(); }}} 
       on:nameClicked={() => {if (selectedPageIndex >= 0) {
       addTextName();
@@ -778,7 +989,7 @@ console.log('pageWidth', pageWidth-pageWidth/2);
 
       <div class="justify-center mr-3 w-full max-w-xs  block_name">
         <input
-          placeholder="File Name"
+          placeholder={$translations['File name']}
           type="text"
           class="flex-grow bg-transparent"
           bind:value={pdfName} />
@@ -790,7 +1001,7 @@ console.log('pageWidth', pageWidth-pageWidth/2);
         md:px-4 mr-3 md:mr-4 rounded" style="background: #3ba83a!important;"
         class:cursor-not-allowed={pages.length === 0 || saving || !pdfFile}
         class:bg-blue-700={pages.length === 0 || saving || !pdfFile}>
-        {saving ? 'Saving' : 'Save'}
+        {saving ? $translations['Saving'] : $translations['Save']}
       </button>
       <div class="flex block-top" style="background: white;
       border-radius: 29px;">
@@ -834,9 +1045,29 @@ console.log('pageWidth', pageWidth-pageWidth/2);
             </svg>
             
         </div>
-        <div class="m-3">
-          100%
-        </div>
+       <div class="m-3 flex items-center gap-2">
+         <!-- <div>
+          <select id="lang" bind:value={lang}>
+            <option value="fr">Français</option>
+            <option value="en">English</option>
+          </select>
+        </div> -->
+        <button 
+          on:click={() => zoomLevel = Math.max(50, zoomLevel - 10)} 
+          disabled={zoomLevel <= 50}
+          class="px-2 py-1 bg-gray-200 rounded disabled:opacity-50">
+          -
+        </button>
+        
+        <span>{zoomLevel}%</span>
+        
+        <button 
+          on:click={() => zoomLevel = Math.min(150, zoomLevel + 10)} 
+          disabled={zoomLevel >= 150}
+          class="px-2 py-1 bg-gray-200 rounded disabled:opacity-50">
+          +
+        </button>
+      </div>
 
         <div class="m-3">
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -875,9 +1106,9 @@ console.log('pageWidth', pageWidth-pageWidth/2);
           {#if logoutMenu == true}
           <div class="right-menu">
             <ul>
-              <li on:click={() => profile = true} style="    margin-bottom: 6px;">Profile</li>
-              <li  style="border-top: solid 1px #38a53d63;     margin-bottom: 6px;" >My files</li>
-              <li on:click={() => {authenticated = false; logoutMenu = false; showRegister = false; localStorage.setItem("session", null);}} style="border-top: solid 1px #38a53d63;" >Logout</li>
+              <li on:click={() => profile = true} style="    margin-bottom: 6px;">{$translations['Profile']}</li>
+              <li  style="border-top: solid 1px #38a53d63;     margin-bottom: 6px;" > {$translations['My files']}</li>
+              <li on:click={() => {authenticated = false; logoutMenu = false; showRegister = false; localStorage.setItem("session", null);}} style="border-top: solid 1px #38a53d63;" >{$translations['Logout']}</li>
             </ul>
           </div>
           {/if}
@@ -895,16 +1126,17 @@ console.log('pageWidth', pageWidth-pageWidth/2);
         transition:fly={{ y: -200, duration: 500 }}
         class="fixed top-0 left-0 right-0 border-b border-gray-300 bg-white modal-sign
         shadow-lg"
-        style="z-index: 99;">
+        style="z-index: 999;">
         <DrawingCanvas
+        checked={autoChecked} 
           on:finish={e => {
             const { originWidth, originHeight, path ,strokeColor, strokeWidth,htmlElement,htmlElement2} = e.detail;
             let scale = 1;
             if (originWidth > 500) {
               scale = 500 / originWidth;
             }
-            addHtmlBlockAsImage(htmlElement,'manuelle');
-            addHtmlBlockAsImage(htmlElement2,'initial');
+            if(htmlElement){addHtmlBlockAsImage(htmlElement,'manuelle');}
+            if(htmlElement2){ addHtmlBlockAsImage(htmlElement2,'initial');}
             // addDrawing(originWidth, originHeight, path, scale,strokeColor,strokeWidth);
             addingDrawing = false;
           }}
@@ -912,9 +1144,11 @@ console.log('pageWidth', pageWidth-pageWidth/2);
       </div>
     {/if}
     {#if pages.length > 0&&countFile==1} 
-    <div class="w-full pages" style="width: 80%; margin-left: 20%; margin-top: 10%; float: right;">
+    {zoomLevel}
+    <div class="w-full pages" style="width: 80%; margin-left: 6%; margin-top: 10%; float: right;overflow-y: auto;    padding-left: 4%;
+    max-height: 90vh; transform: scale({zoomLevel /100});">
       <div class="flex-grow flex justify-center items-center">
-        <input type="file" name="file" id="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.pptm,.opt" on:change={onUploadFile} class="hidden" />
+        <input type="file" name="file" id="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.pptm,.opt" on:change={onUploadImage} class="hidden" />
         <label class="font-bold otherFile" for="file">
           <div class="mr-2">
             <svg width="25" height="25" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -927,14 +1161,12 @@ console.log('pageWidth', pageWidth-pageWidth/2);
         </label>
       </div>
       <div class="ticket" style="top: 70px;cursor: pointer;"
-          on:click={()=>{window.scrollTo({
-            top: document.body.scrollHeight,
-            behavior: "smooth"
-        });}}
+      on:click={() => showModal = true}
       >Start</div>
 
       {#each pages as page, pIndex (page)}
         <div
+          id={`page-${pIndex}`}
           class="p-5 w-full flex flex-col items-center overflow-hidden"
           on:mousedown={() => selectPage(pIndex)}
           on:touchstart={() => selectPage(pIndex)}>
@@ -987,25 +1219,42 @@ console.log('pageWidth', pageWidth-pageWidth/2);
                     pageScale={pagesScale[pIndex]} />
                 {/if}
               {/each}
+            
             </div>
+
           </div>
+            {#if pdfText.length>0}   
+              <div style="        width: 200px;
+    background: rgb(212 216 255);
+    position: absolute;
+    padding: 8px;
+    left: 0px;
+    font-size: 11px;
+    color: rgb(30 76 231);
+    border-radius: 8px;
+
+">
+                {pdfText[pIndex].content}
+              </div>
+            {/if}
         </div>
+
       {/each}
 
-      <div class="ticket" style="bottom: 270px;">Next</div>
+      <div class="ticket" style="bottom: 16%;">End</div>
       {#if showTicket===true} 
-      <div class="ticket-sign" style="    bottom: 300px;">
+      <div class="ticket-sign" style="    bottom: 20%; right: {btnText='Initial'? '65%' : '20%' }" >
         <div  style=" cursor: pointer;
     font-size: 14px;    height: 36px;
     border-radius: 8px;
     background-image: linear-gradient(140deg, rgb(47 148 46), rgb(139 241 97));
     display: flex;    align-items: center;
-    justify-content: center;" on:click={()=>{handleSignClick(); showTicket=false;}} >
+    justify-content: center;" on:click={()=>handleSignFunc()} >
     <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="20" height="20" viewBox="0 0 64 64" fill="white">
       <path d="M23 62c0 .8.6 1.5 1.5 1.5h20c.8 0 1.5-.7 1.5-1.5s-.7-1.5-1.5-1.5h-20C23.6 60.5 23 61.2 23 62zM10.9 55.5l-.4 6.5c-.1.5.3 1.1.8 1.4.3.2.5.2.8.2.3 0 .6-.1.9-.3l5.4-3.5c2.8-1.8 5.1-4.3 6.8-7.2l15.2-26.2c.4-.7.2-1.6-.5-2s-1.7-.1-2 .5L22.4 51c-1.5 2.5-3.5 4.6-5.9 6.2l-2.9 1.9.2-3.5c.1-2.8 1-5.7 2.4-8.2l15.1-26.2c.4-.7.1-1.6-.5-2-.7-.4-1.6-.1-2 .5L13.8 46C12.1 48.9 11.1 52.2 10.9 55.5zM43.3 20.9l1.8-3.3c.8-1.5 1.1-3.3.7-4.9-.5-1.7-1.5-3.1-3-3.9s-3.3-1.1-5-.6c-1.7.4-3.1 1.6-4 3.1L32 14.4c-.4.7-.1 1.6.5 2l8.6 5c.3.1.5.2.8.2.2 0 .3 0 .4 0C42.8 21.5 43 21.2 43.3 20.9zM52 60.5A1.5 1.5 0 1052 63.5 1.5 1.5 0 1052 60.5z"></path>
     </svg>
     
-            Sign 
+            {btnText} 
             <!-- <svg style="justify-self: anchor-center;" width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M15 21H9C6.17157 21 4.75736 21 3.87868 20.1213C3 19.2426 3 17.8284 3 15M21 15C21 17.8284 21 19.2426 20.1213 20.1213C19.8215 20.4211 19.4594 20.6186 19 20.7487" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
               <path d="M12 16V3M12 3L16 7.375M12 3L8 7.375" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1040,7 +1289,7 @@ console.log('pageWidth', pageWidth-pageWidth/2);
       <div class="flex-grow flex justify-center items-center">
         <input type="file" name="file" id="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.pptm,.opt" on:change={onUploadFile} class="hidden" />
         <label class="font-bold text-3xl" style="cursor: pointer;" for="file">
-          Choose File
+          {$translations['Choose File']}
           <br>
           <div>
             <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1053,30 +1302,41 @@ console.log('pageWidth', pageWidth-pageWidth/2);
       </div>
     </div>
   {/if}
-    <RightMenu class="flex-shrink-0"  {pages} on:selectPage={event => scrollToPage(event.detail)}/>
-    <div class="sign-block"  style="height: 64px;width: 220px;position: absolute;top: -70px;">
-      <div class="css-12sxlyp ">
-        <span>Doc signed by:</span>
-        <div class="css-fv3lde">
-          <span class="css-po3aid" style="font-family: {font ? font : 'Mistral'};">{username}</span>
-          <div class="css-1j983t3">{codeSign}</div>
+      <RightMenu 
+      pages={pages} 
+      bind:selectedPageIndex
+      on:pageSelected={e => selectPage(e.detail.index)}
+      on:deletePage={handleDeletePage}
+      on:resetPage={handleResetPage}
+    />
+    <div class="sign-block"  style="height: 64px;width: 220px;position: absolute;top: -70px;color: {colorSign}:">
+      <div class="css-12sxlyp " style="color: {colorSign};--border-color: {colorSignBorder}" >
+        <span>
+          <span >{new Date().toISOString().split("T")[0]}</span>  
+          Doc signed by:</span>
+        <div class="css-fv3lde" style="color: {colorSign}">
+          <span class="css-po3aid" style="font-family: {font ? font : 'Mistral'};color: {colorSign};">{username}</span>
+          <div class="css-1j983t3" style="color: {colorSign}">{codeSign}</div>
         </div>
         
       </div>
-    </div>
+    </div> 
 
-    <div class="sign-block-two"  style="height: 64px;width: 220px;position: absolute;top: -70px;">
-      <div class="css-12sxlyp ">
-        <span>Initial by:</span>
-        <div class="css-fv3lde" style="padding-left: 35px;">
-          <span class="css-po3aid" style="font-family: {font ? font : 'Mistral'};">
+    <div class="sign-block-two"  style="height: 64px;width: 170pxpx;position: absolute;top: -70px;">
+      <div class="css-12sxlyp " style="--border-color: {colorSignBorder}">
+        <span style="color: {colorSign}">Initial by:</span>
+        <div class="css-fv3lde" style="padding-left: 35px;width: min-content;color: {colorSign}">
+          <span class="css-po3aid" style="font-family: {font ? font : 'Mistral'};color: {colorSign};">
              {initial}
           </span>
-          <div class="css-1j983t3">{codeSign}</div>
+          <div class="css-1j983t3" style="color: {colorSign}">{codeSign}</div>
         </div>
         
       </div>
     </div>
+    
+
+
   </main>
   {/if}
 {:else if showRegister}
@@ -1084,8 +1344,275 @@ console.log('pageWidth', pageWidth-pageWidth/2);
 {:else}
   <Login on:login={handleLogin} on:goToRegister={handleGoToRegister} />
 {/if}
+{#if showModal2}
+<div class="modal-backdrop">
+  <div class="modal">
+    <p>You want to add initials in all pages?</p>
+    <div class="modal-buttons">
+      <button class="choise" on:click={() => handleChoice('yes')}>Yes</button>
+      <button class="choise" on:click={() => handleChoice('no')}>No</button>
+    </div>
+  </div>
+</div>
+{/if}
+{#if showModalReset}
+<div class="modal-backdrop">
+  <div class="modal">
+    <p>Do you want to reset all changes of this page?</p>
+    <div class="modal-buttons">
+      <button class="choise" on:click={() => {handleChoiceReset('yes');nextStep()}}>Yes</button>
+      <button class="choise" on:click={() => {handleChoiceReset('no');nextStep()}}>No</button>
+    </div>
+  </div>
+</div>
+{/if}
+{#if showModal}
+  <div class="modal-overlay">
+    <div class="modal-content">
+      <!-- Step 1 -->
+      {#if currentStep === 1}
+      <div class="modal-backdrop">
+        <div class="modal">
+          <p>What type of signature you prefer</p>
+          <div class="modal-buttons">
+            <button class="choise" on:click={() => {handleStartClick('auto');nextStep()}}>Signature auto</button>
+            <button class="choise" on:click={() => {handleStartClick('manuel');nextStep()}}>Signature manuelle</button>
+            <button class="choise" on:click={() => {handleStartClick('initial');nextStep()}}>Initial Manuelle</button>
+            <button class="choise" on:click={() => {handleStartClick('initialAuto');nextStep()}}>Initial Auto</button>
+            <button class="choise" on:click={() => {handleStartClick('auto+manuel');nextStep()}}>Signature auto + Signature manuelle</button>
 
+          </div>
+        </div>
+      </div>
+      {/if}
+      
+      <!-- Step 2 -->
+      {#if currentStep === 2}
+      <div class="modal-backdrop">
+        <div class="modal">
+          <p>You want to add initials in all pages?</p>
+          <div class="modal-buttons">
+            <button class="choise" on:click={() => {handleChoice('yes')}}>Yes</button>
+            <button class="choise" on:click={() => {handleChoice('no')}}>No</button>
+          </div>
+        </div>
+      </div>
+      {/if}
+      
+    </div>
+  </div>
+{/if}
+
+{#if showMessage}
+  <div class="modal-overlay">
+    <div class="modal-content">
+      <!-- Step 1 -->
+      <div class="modal-backdrop">
+        <div class="modal">
+          <p>{message}</p>
+          <div class="modal-buttons">
+            <button class="choise" style="width: 80px;height: 50px;" on:click={() => {closeModalMessage()}}>Ok</button>
+          </div>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+{/if}
+{#if loading}
+  <div class="loader-overlay">
+    <div class="loader-wrapper">
+      <!-- Logo at the top -->
+      <div class="logo-container">
+        <LogoMenu />
+      </div>
+
+      <!-- Loader animation -->
+      <div class="dots-loader">
+        <div></div>
+        <div></div>
+        <div></div>
+      </div>
+
+      <!-- Loading message -->
+      <p class="loader-text">Upload in progress, please wait</p>
+    </div>
+  </div>
+{/if}
+
+{#if showModalStamp}
+<div class="modal-backdrop">
+  <div class="modal" style="position: absolute;">
+    <span on:click={() => { showModalStamp = false;}} style="
+    cursor: pointer;position: absolute;
+    top: 15px;
+    right: 30px;
+">X</span>
+    <p>Do you want to reset all changes of this page?</p>
+    <div class="modal-buttons">
+      <button class="choise" on:click={() => {handleChoiceStamp('default')}}>Add default Stamp</button>
+      <button class="choise" >
+        <input type="file" name="file" id="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.pptm,.opt" on:change={onUploadImage} class="hidden" />
+        <label  for="file">
+          Upload Stamp
+        </label>
+        </button>
+    </div>
+  </div>
+</div>
+{/if}
+
+{#if loadingTrans}
+	<div class="loader-overlay">
+		<div class="spinner"></div>
+	</div>
+{/if}
 <style>
+ 
+    .loader-text {
+    margin-top: 1rem;
+    font-size: 1.5rem;
+    color: #38a53d;
+  }
+.loader-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+
+  .loader-wrapper {
+    text-align: center;
+  }
+
+  .logo-container {
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: center;
+  }
+
+  .logo-container :global(svg) {
+    width: 80px;
+    height: auto;
+  }
+
+  .dots-loader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 60px;
+    margin: 0 auto;
+  }
+
+  .dots-loader div {
+    width: 14px;
+    height: 14px;
+    background-color: #38a53d;
+    border-radius: 50%;
+    animation: bounce 0.6s infinite ease-in-out;
+  }
+
+  .dots-loader div:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+
+  .dots-loader div:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+
+  @keyframes bounce {
+    0%, 80%, 100% {
+      transform: scale(0);
+    } 
+    40% {
+      transform: scale(1);
+    }
+  }
+
+  /* .loader-text {
+    margin-top: 1rem;
+    font-size: 1rem;
+    color: #333;
+  } */
+
+  @keyframes bounce {
+    0%, 80%, 100% {
+      transform: scale(0);
+    } 
+    40% {
+      transform: scale(1);
+    }
+  }
+   
+
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  
+  .modal-content {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 90%;
+  }
+
+  
+  .step {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+    .modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  .choise{
+    background: linear-gradient(140deg, rgb(47 148 46), rgb(139 241 97));
+    color: white;
+    border-radius: 10px;
+    margin-top: 15px;
+    width: 34%;
+    cursor: pointer;
+    height: 80px;
+  }
+
+  .modal {
+    background: white;
+    padding: 50px 0px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    font-size: 20px;
+    width: 45%;
+  }
+
+  .modal-buttons button {
+    padding: 5px 15px;
+    cursor: pointer;
+  }
   .modal-sign{
     height: 65%;
     /* z-index: 99;
@@ -1174,12 +1701,12 @@ console.log('pageWidth', pageWidth-pageWidth/2);
 }
 
 .css-12sxlyp::before {
-  border-bottom: 2px solid rgb(0, 92, 185);
-    -webkit-border-start: 2px solid rgb(0, 92, 185);
-    border-inline-start: 2px solid rgb(0, 92, 185);
+  border-bottom: 2px solid var(--border-color);
+    -webkit-border-start: 2px solid var(--border-color);
+    border-inline-start: 2px solid var(--border-color);
     border-start-start-radius: 15px;
     border-end-start-radius: 15px;
-    border-top: 2px solid rgb(0, 92, 185);
+    border-top: 2px solid var(--border-color);
     content: "";
     display: block;
     height: 100%;
@@ -1189,7 +1716,20 @@ console.log('pageWidth', pageWidth-pageWidth/2);
     top: 7px;
     background: none;
 }
-
+.css-12sxlyp::after {
+    content: "";
+    position: absolute;
+    top: 7px;
+    bottom: 4px;
+    right: 10px;
+    border-right: 2px dashed var(--border-color);
+    width: 30%;
+    border-bottom: 2px dashed var(--border-color);
+    border-top: 2px dashed var(--border-color);
+    border-bottom-right-radius: 15px;
+    border-top-right-radius: 15px;
+    height: 100%;
+}
 .css-fv3lde {
   align-items: center;
   display: flex;
