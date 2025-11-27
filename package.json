@@ -5,8 +5,8 @@
   "homepage": "https://pdf-editor.now.sh",
   "scripts": {
     "build": "rollup -c",
-    "dev": "concurrently \"rollup -c -w\" \"sirv public --no-clear --dev\"",
-    "start": "sirv public"
+    "dev": "concurrently \"rollup -c -w\" \"sirv public --no-clear --dev --host 0.0.0.0 --port 8121\"",
+    "start": "sirv public --host 0.0.0.0 --port 8121"
   },
   "devDependencies": {
     "@babel/core": "^7.28.0",

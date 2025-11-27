@@ -29,7 +29,7 @@
   	import { currentLang,translations, translateAll } from './stores/translation.js';
     
 	let loadingTrans = false;
-
+// ip adress : 83.199.131.217  192.168.2.61 172.17.0.1
 	const textsToTranslate = [
 		'Choose File', 'Save', 'Profile', 'My files', 'File name'
 	];
@@ -38,9 +38,21 @@
 	});
 
 	// Reactively watch language changes
-	$: if ($currentLang) {
-		translateAll(textsToTranslate, 'en', $currentLang, val => loadingTrans = val);
-	}
+  $: if ($currentLang) {
+      translateAll(textsToTranslate, 'en', $currentLang, val => loadingTrans = val);
+        //   const formData = new FormData();
+        // formData.append('pdf', pdfFile);
+        // formData.append('target', $currentLang);
+        // formData.append('source', 'fr'); // or auto-detect if needed
+
+        // const res =  fetch('http://83.199.131.217:8121/api/extract-pdf-translated', {
+        //   method: 'POST',
+        //   body: formData,
+        // });
+
+        // const data =  res.json();
+        // pdfText = data.pages;
+    }
   let pdfPages = [];
   const genID = ggID();
   let pdfFile;
@@ -264,6 +276,98 @@ let zoomLevel = 100;
     //     onUploadImage(e);
     // }
   }
+    async function addInitialsByApi(withColor = false,file) {
+console.log('azzaeazez');
+
+    showModal3 = false;
+
+    const formData = new FormData();
+    formData.append('pdf_file', file);
+    if (initialImage) {
+          formData.append('image_file', initialImage);
+    }else{
+          formData.append('initials_text', 'IT');
+    }
+    formData.append('side','left');
+    formData.append('page_number', 0);
+    formData.append('width', 90);
+    formData.append('height', 50);
+    
+    if (withColor) {
+      formData.append('initials_color', '0,128,0');
+    }
+
+    try {
+      const response = await fetch('http://tplussgest.ddns.net:33125/insert-image/', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Convert binary response to blob
+      const blob = await response.blob();
+      await onUploadFileFromAPI(blob, 'processed_document.pdf');
+            
+    } catch (err) {
+      console.error('Error:', err);
+    } finally {
+    }
+  }
+
+  async function onUploadFileFromAPI(apiFileBlob, originalFileName = 'document.pdf') {
+  countFile = 0;
+  
+  // Create a File object from the Blob returned by the API
+  const file = new File([apiFileBlob], originalFileName, { 
+    type: 'application/pdf',
+    lastModified: Date.now()
+  });
+
+  if (!file) {
+    return;
+  } else {
+    countFile = 1;
+  }
+
+  try {
+    // Since the API returns a PDF, we can directly use addPDF
+    if (file.type === "application/pdf") {
+      await addPDF(file);
+    } else {
+      // Handle other file types if needed (though API should return PDF)
+      loading = true;
+      const convertedFile = await convertWordToPdf(file);
+      if (convertedFile) {
+        await addPDF(convertedFile);
+        setTimeout(() => {
+          loading = false;
+        });
+      }
+      file = convertedFile;
+    }
+    
+    const formData = new FormData();
+    formData.append('pdf', file);
+    formData.append('target', $currentLang);
+    formData.append('source', 'fr'); // or auto-detect if needed
+
+    const res = await fetch('http://83.199.131.217:8121/api/extract-pdf-translated', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await res.json();
+    pdfText = data.pages;
+    console.log(pdfText[0].pageNumber);
+    
+
+  } catch (e) {
+    console.error(e);
+  }
+}
 
   let countFile=0;
   let loading=false;
@@ -272,6 +376,7 @@ let pdfText=[];
   countFile = 0;
   const files = e.target.files || (e.dataTransfer && e.dataTransfer.files);
   const file = files[0];
+
   if (!file) {
     return;
   } else {
@@ -301,7 +406,7 @@ let pdfText=[];
     formData.append('target', $currentLang);
     formData.append('source', 'fr'); // or auto-detect if needed
 
-    const res = await fetch('http://192.168.1.8:8000/api/extract-pdf-translated', {
+    const res = await fetch('http://83.199.131.217:8121/api/extract-pdf-translated', {
       method: 'POST',
       body: formData,
     });
@@ -324,7 +429,7 @@ async function convertWordToPdf(wordFile) {
   formData.append("file", wordFile);
 
   try {
-    const response = await fetch("http://192.168.1.8:8000/api/convert-word-to-pdf", {
+    const response = await fetch("http://83.199.131.217:8121/api/convert-word-to-pdf", {
       method: "POST",
       body: formData,
     });
@@ -437,15 +542,61 @@ let showModal2 = false;
     }
     
   }
+    function handleAllInitialsImage() {
+    if (countFile==0) {
+      message="You must upload file first";
+      showMessage=true;
+    }else{
+      showModal3 = true;
+    }
+    
+  }
+    let showModal3= false;
+    let initialImage=null;
+      async function uploadInitialImage(e) {
+        countFile = 0;
+        const files = e.target.files || (e.dataTransfer && e.dataTransfer.files);
+        const file = files[0];
+
+
+
+        try {
+          showModal3 = false;
+          initialImage = file;
+          addInitialsByApi(false,pdfFile);
+            
+
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+  //   function uploadInitialImage(e) {
+      
+  //       const file = e.target.files[0];
+  //       console.log(' e.target',  e.target);
+        
+  //       saveInitialImage(file);
+  // }
+  // function saveInitialImage(file) {
+  //           initialImage = file;
+  // }
+    function handleChoiceImage() {
+      
+          showModal3 = false;
+
+        // addInitialsByApi(false,pdfFile,initialImage);
+
+  }
   function handleChoice(choice) {
     userChoice = choice;
     showModal2 = false;
     if (choice == "yes") {
-      addInitials();
-      scrollToPage(pages.length-1)
+      addInitialsByApi(false,pdfFile);
+      // scrollToPage(pages.length-1)
     }
-    selectedPageIndex= pages.length-1;
-    scrollToPage(pages.length-1)
+    // selectedPageIndex= pages.length-1;
+    // scrollToPage(pages.length-1)
     closeModal()
   }
 function renderHTMLToCanvas(htmlContent) {
@@ -829,7 +980,7 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
   let authenticated = false;
   let showRegister = false;
   let profile = false;
-  
+  let showTranslate=true;
 
   function handleLogin(event) {
     authenticated = true;
@@ -971,14 +1122,14 @@ async function addHtmlBlockInAllPages(htmlElement, typeSign) {
 
 
   <main class="flex flex-row min-h-screen bg-gray-100">
-    <LeftMenu class="flex-shrink-0" on:initialsClicked={handleInitialsClick} on:allInitialsClicked={handleAllInitialsClick}  on:manuelleClicked={handleManuelleClick} on:StampClicked={handleStampClick}  on:signClicked={handleSignClick} 
+    <LeftMenu class="flex-shrink-0" on:initialsClicked={handleInitialsClick} on:allInitialsClicked={handleAllInitialsClick} on:handleAllInitialsImage={handleAllInitialsImage} on:manuelleClicked={handleManuelleClick} on:StampClicked={handleStampClick}  on:signClicked={handleSignClick} 
     on:emailClicked={()=>  { if(selectedPageIndex >= 0){ addTextEmail(); }}} 
     on:nameClicked={() => {if (selectedPageIndex >= 0) {addTextName(); }}} />
     <ProfilePage on:goToHome={handleGoToHome}/>
   </main>
   {:else}
   <main class="flex flex-row min-h-screen bg-gray-100">
-    <LeftMenu class="flex-shrink-0" on:initialsClicked={handleInitialsClick} on:allInitialsClicked={handleAllInitialsClick} on:manuelleClicked={handleManuelleClick} on:StampClicked={handleStampClick} on:signClicked={handleSignClick}
+    <LeftMenu class="flex-shrink-0" on:initialsClicked={handleInitialsClick} on:allInitialsClicked={handleAllInitialsClick} on:handleAllInitialsImage={handleAllInitialsImage} on:manuelleClicked={handleManuelleClick} on:StampClicked={handleStampClick} on:signClicked={handleSignClick}
       on:emailClicked={()=>  { if(selectedPageIndex >= 0){ addTextEmail(); }}} 
       on:nameClicked={() => {if (selectedPageIndex >= 0) {
       addTextName();
@@ -1160,9 +1311,9 @@ async function addHtmlBlockInAllPages(htmlElement, typeSign) {
           Add image 
         </label>
       </div>
-      <div class="ticket" style="top: 70px;cursor: pointer;"
+      <!-- <div class="ticket" style="top: 70px;cursor: pointer;"
       on:click={() => showModal = true}
-      >Start</div>
+      >Start</div> -->
 
       {#each pages as page, pIndex (page)}
         <div
@@ -1174,6 +1325,34 @@ async function addHtmlBlockInAllPages(htmlElement, typeSign) {
           <div
             class="relative shadow-lg"
             class:shadow-outline={pIndex === selectedPageIndex}>
+          {#if pIndex === 0}
+          <div class="ticket"  style="cursor: pointer;left: -5px;position: absolute;"
+            on:click={() => showModal = true}
+            >Start</div>
+          {/if}
+                                <div style="position: absolute;
+    left: 0;">
+            <div on:click={() => showTranslate = !showTranslate} style="background: #38a53d;cursor: pointer;
+    width: 20px;
+    color: white;
+    position: absolute;
+    z-index: 2;
+    text-align: center;"> {showTranslate? 'X' : '>'}</div>
+            {#if pdfText.length>0&&showTranslate}   
+              <div style="        width: 200px;
+    background: rgb(226 255 227);
+    position: absolute;
+    padding: 8px;
+    left: 0px;
+    font-size: 11px;
+    color: rgb(32 131 36);
+    border-radius: 8px;
+
+">
+                {pdfText[pIndex].content}
+              </div>
+            {/if}
+          </div>
             <PDFPage
               on:measure={e => {onMeasure(e.detail.scale, pIndex); detailsPage=e.detail}}
               {page} />
@@ -1223,20 +1402,7 @@ async function addHtmlBlockInAllPages(htmlElement, typeSign) {
             </div>
 
           </div>
-            {#if pdfText.length>0}   
-              <div style="        width: 200px;
-    background: rgb(212 216 255);
-    position: absolute;
-    padding: 8px;
-    left: 0px;
-    font-size: 11px;
-    color: rgb(30 76 231);
-    border-radius: 8px;
 
-">
-                {pdfText[pIndex].content}
-              </div>
-            {/if}
         </div>
 
       {/each}
@@ -1351,6 +1517,34 @@ async function addHtmlBlockInAllPages(htmlElement, typeSign) {
     <div class="modal-buttons">
       <button class="choise" on:click={() => handleChoice('yes')}>Yes</button>
       <button class="choise" on:click={() => handleChoice('no')}>No</button>
+    </div>
+  </div>
+</div>
+{/if}
+{#if showModal3}
+<div class="modal-backdrop">
+  <div class="modal">
+    <p>Please select an initial image</p>
+    <div class="modal-buttons">
+      <br>
+      <div class="flex-grow flex justify-center items-center">
+                <input type="file" name="file" id="file" on:change={uploadInitialImage}  />
+        <!-- <label class="font-bold otherFile" for="file">
+          <div class="mr-2">
+            <svg width="25" height="25" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M31.6667 21V42" stroke="#878A93" stroke-width="3" stroke-linecap="round"/>
+              <path d="M42 31.6665L21 31.6665" stroke="#878A93" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="32" cy="32" r="31" stroke="#878A93" stroke-width="2"/>
+            </svg>
+          </div>
+          Add image 
+        </label> -->
+      </div>
+
+          <div class="modal-buttons">
+      <button class="choise" on:click={() => {handleChoiceImage()}}>Save</button>
+  </div>
+
     </div>
   </div>
 </div>

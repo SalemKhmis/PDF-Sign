@@ -6,7 +6,7 @@
     import { translations, currentLang, translateAll } from './stores/translation.js';
 	let loading = false;
 
-    const textsToTranslate = ['Signature', 'Initial', 'Signature manuelle', 'Stamp', 'Date Signed', 'Other Details', "Name","Email", "Add initials", "Company", "Title", "Custom Signature"];
+    const textsToTranslate = ['Signature', 'Initial', 'Signature manuelle', 'Stamp', 'Date Signed', 'Other Details', "Name","Email", "Add initials", "Company", "Title", "Custom Signature", "Add initials image"];
 
   onMount(() => {
 		translateAll(textsToTranslate, 'en', $currentLang, val => loading = val);
@@ -65,6 +65,9 @@
     }
     function handleAllInitialsClick() {      
       dispatch('allInitialsClicked');
+    }
+    function handleAllInitialsImage() {      
+      dispatch('handleAllInitialsImage');
     }
     function handleNameClick() {    
       dispatch('nameClicked');
@@ -343,6 +346,10 @@
     <div class="menu-item" on:click={handleAllInitialsClick}>
       <i class="mr-2"></i>
     <span> {$translations['Add initials']}</span>
+  </div>
+      <div class="menu-item" on:click={handleAllInitialsImage}>
+      <i class="mr-2"></i>
+    <span> {$translations['Add initials image']}</span>
   </div>
     <div class="menu-item">
         <i class="mr-2"></i>
