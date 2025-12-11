@@ -9,7 +9,7 @@
   
     async function handleSubmit() {
       if (email && password && username) {
-        const response = await fetch('http://127.0.0.1:5000/auth/register', {
+        const response = await fetch('http://tplussgest.ddns.net:32147/auth/register', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'

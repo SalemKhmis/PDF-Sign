@@ -11,7 +11,7 @@ export async function translateAll(keys, source = 'en', target = 'fr', setLoadin
 	try {
 		setLoading(true);
 
-		const res = await fetch('http://83.199.131.217:8121/api/translate', {
+		const res = await fetch('http://tplussgest.ddns.net:32147/api/translate', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ texts: keys, source, target })

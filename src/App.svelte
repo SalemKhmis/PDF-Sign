@@ -45,7 +45,7 @@
         // formData.append('target', $currentLang);
         // formData.append('source', 'fr'); // or auto-detect if needed
 
-        // const res =  fetch('http://83.199.131.217:8121/api/extract-pdf-translated', {
+        // const res =  fetch('http://tplussgest.ddns.net:32147/api/extract-pdf-translated', {
         //   method: 'POST',
         //   body: formData,
         // });
@@ -298,7 +298,7 @@ console.log('azzaeazez');
     }
 
     try {
-      const response = await fetch('http://tplussgest.ddns.net:33125/insert-image/', {
+      const response = await fetch('http://tplussgest.ddns.net:32147/insert-image/', {
         method: 'POST',
         body: formData
       });
@@ -354,7 +354,7 @@ console.log('azzaeazez');
     formData.append('target', $currentLang);
     formData.append('source', 'fr'); // or auto-detect if needed
 
-    const res = await fetch('http://83.199.131.217:8121/api/extract-pdf-translated', {
+    const res = await fetch('http://tplussgest.ddns.net:32147/api/extract-pdf-translated', {
       method: 'POST',
       body: formData,
     });
@@ -406,7 +406,7 @@ let pdfText=[];
     formData.append('target', $currentLang);
     formData.append('source', 'fr'); // or auto-detect if needed
 
-    const res = await fetch('http://83.199.131.217:8121/api/extract-pdf-translated', {
+    const res = await fetch('http://tplussgest.ddns.net:32147/api/extract-pdf-translated', {
       method: 'POST',
       body: formData,
     });
@@ -429,7 +429,7 @@ async function convertWordToPdf(wordFile) {
   formData.append("file", wordFile);
 
   try {
-    const response = await fetch("http://83.199.131.217:8121/api/convert-word-to-pdf", {
+    const response = await fetch("http://tplussgest.ddns.net:32147/api/convert-word-to-pdf", {
       method: "POST",
       body: formData,
     });
