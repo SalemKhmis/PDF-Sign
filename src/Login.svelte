@@ -35,10 +35,10 @@
         // });
   
         // if (response.ok) {
-        //   dispatch('login', {
-        //   "username": email,
-        //   "password": password
-        // });
+          dispatch('login', {
+          "username": email,
+          "password": password
+        });
         localStorage.setItem("session", 'session');
         // } else {
         //   alert('Login failed. Please check your credentials.');

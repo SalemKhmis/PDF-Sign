@@ -31,7 +31,7 @@
 	let loadingTrans = false;
 // ip adress : 83.199.131.217  192.168.2.61 172.17.0.1
 	const textsToTranslate = [
-		'Choose File', 'Save', 'Profile', 'My files', 'File name'
+		'Choose File', 'Save', 'Profile', 'My files', 'File name', 'Logout'
 	];
     onMount(() => {
 		translateAll(textsToTranslate, 'en', $currentLang, val => loadingTrans = val);
@@ -999,6 +999,7 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
   function handleGoToHome() {
     profile = false;
     logoutMenu = false;
+    authenticated=true;
   }
   async function loadSavedImage(typeSign) {
   const imgUrl = localStorage.getItem(`savedImage_${typeSign}`);
@@ -1259,7 +1260,7 @@ async function addHtmlBlockInAllPages(htmlElement, typeSign) {
             <ul>
               <li on:click={() => profile = true} style="    margin-bottom: 6px;">{$translations['Profile']}</li>
               <li  style="border-top: solid 1px #38a53d63;     margin-bottom: 6px;" > {$translations['My files']}</li>
-              <li on:click={() => {authenticated = false; logoutMenu = false; showRegister = false; localStorage.setItem("session", null);}} style="border-top: solid 1px #38a53d63;" >{$translations['Logout']}</li>
+              <li on:click={() => {authenticated = false; logoutMenu = false; showRegister = false; localStorage.removeItem("session");}} style="border-top: solid 1px #38a53d63;" >{$translations['Logout']}</li>
             </ul>
           </div>
           {/if}
@@ -1508,7 +1509,7 @@ async function addHtmlBlockInAllPages(htmlElement, typeSign) {
 {:else if showRegister}
   <Register on:register={handleLogin} on:goToLogin={handleGoToLogin} />
 {:else}
-  <Login on:login={handleLogin} on:goToRegister={handleGoToRegister} />
+  <Login on:login={handleLogin} on:goToRegister={handleGoToRegister}  on:goToHome={handleGoToHome}/>
 {/if}
 {#if showModal2}
 <div class="modal-backdrop">
