@@ -29,6 +29,8 @@
   	import { currentLang,translations, translateAll } from './stores/translation.js';
     
 	let loadingTrans = false;
+  let showModal = false;
+
 // ip adress : 83.199.131.217  192.168.2.61 172.17.0.1
 	const textsToTranslate = [
 		'Choose File', 'Save', 'Profile', 'My files', 'File name', 'Logout'
@@ -45,7 +47,7 @@
         // formData.append('target', $currentLang);
         // formData.append('source', 'fr'); // or auto-detect if needed
 
-        // const res =  fetch('http://tplussgest.ddns.net:32147/api/extract-pdf-translated', {
+        // const res =  fetch('http://192.168.1.155:8000/api/extract-pdf-translated', {
         //   method: 'POST',
         //   body: formData,
         // });
@@ -277,28 +279,28 @@ let zoomLevel = 100;
     // }
   }
     async function addInitialsByApi(withColor = false,file) {
-console.log('azzaeazez');
+// console.log('azzaeazez');
 
     showModal3 = false;
 
     const formData = new FormData();
     formData.append('pdf_file', file);
-    if (initialImage) {
-          formData.append('image_file', initialImage);
+    if (!signatureImage) {
+          formData.append('initials_image', initialImage);
     }else{
-          formData.append('initials_text', 'IT');
+          formData.append('image_file', initialImage);
     }
     formData.append('side','left');
     formData.append('page_number', 0);
-    formData.append('width', 90);
-    formData.append('height', 50);
+    formData.append('width', 80);
+    formData.append('height', 40);
     
     if (withColor) {
       formData.append('initials_color', '0,128,0');
     }
 
     try {
-      const response = await fetch('http://tplussgest.ddns.net:32147/insert-image/', {
+      const response = await fetch('http://tplussgest.ddns.net:33125/insert-image/', {
         method: 'POST',
         body: formData
       });
@@ -354,7 +356,7 @@ console.log('azzaeazez');
     formData.append('target', $currentLang);
     formData.append('source', 'fr'); // or auto-detect if needed
 
-    const res = await fetch('http://tplussgest.ddns.net:32147/api/extract-pdf-translated', {
+    const res = await fetch('http://192.168.1.155:8000/api/extract-pdf-translated', {
       method: 'POST',
       body: formData,
     });
@@ -406,7 +408,7 @@ let pdfText=[];
     formData.append('target', $currentLang);
     formData.append('source', 'fr'); // or auto-detect if needed
 
-    const res = await fetch('http://tplussgest.ddns.net:32147/api/extract-pdf-translated', {
+    const res = await fetch('http://192.168.1.155:8000/api/extract-pdf-translated', {
       method: 'POST',
       body: formData,
     });
@@ -429,7 +431,7 @@ async function convertWordToPdf(wordFile) {
   formData.append("file", wordFile);
 
   try {
-    const response = await fetch("http://tplussgest.ddns.net:32147/api/convert-word-to-pdf", {
+    const response = await fetch("http://192.168.1.155:8000/api/convert-word-to-pdf", {
       method: "POST",
       body: formData,
     });
@@ -497,7 +499,6 @@ async function addPDF(file) {
 }
 
 let message='';
-let showModal = false;
 let showMessage= false;
   let currentStep = 1;
   
@@ -542,11 +543,16 @@ let showModal2 = false;
     }
     
   }
-    function handleAllInitialsImage() {
+  let signatureImage= false;
+    function handleAllInitialsImage(type) {
+       signatureImage= false;
     if (countFile==0) {
       message="You must upload file first";
       showMessage=true;
     }else{
+      if (type=='sig') {
+        signatureImage=true;
+      }
       showModal3 = true;
     }
     
@@ -593,10 +599,10 @@ let showModal2 = false;
     showModal2 = false;
     if (choice == "yes") {
       addInitialsByApi(false,pdfFile);
-      // scrollToPage(pages.length-1)
+      scrollToPage(pages.length-1)
     }
-    // selectedPageIndex= pages.length-1;
-    // scrollToPage(pages.length-1)
+    selectedPageIndex= pages.length-1;
+    scrollToPage(pages.length-1)
     closeModal()
   }
 function renderHTMLToCanvas(htmlContent) {
@@ -1123,14 +1129,14 @@ async function addHtmlBlockInAllPages(htmlElement, typeSign) {
 
 
   <main class="flex flex-row min-h-screen bg-gray-100">
-    <LeftMenu class="flex-shrink-0" on:initialsClicked={handleInitialsClick} on:allInitialsClicked={handleAllInitialsClick} on:handleAllInitialsImage={handleAllInitialsImage} on:manuelleClicked={handleManuelleClick} on:StampClicked={handleStampClick}  on:signClicked={handleSignClick} 
+    <LeftMenu class="flex-shrink-0" on:initialsClicked={handleInitialsClick} on:allInitialsClicked={handleAllInitialsImage('initial')} on:handleAllInitialsImage={handleAllInitialsImage('sig')} on:manuelleClicked={handleManuelleClick} on:StampClicked={handleStampClick}  on:signClicked={handleSignClick} 
     on:emailClicked={()=>  { if(selectedPageIndex >= 0){ addTextEmail(); }}} 
     on:nameClicked={() => {if (selectedPageIndex >= 0) {addTextName(); }}} />
     <ProfilePage on:goToHome={handleGoToHome}/>
   </main>
   {:else}
   <main class="flex flex-row min-h-screen bg-gray-100">
-    <LeftMenu class="flex-shrink-0" on:initialsClicked={handleInitialsClick} on:allInitialsClicked={handleAllInitialsClick} on:handleAllInitialsImage={handleAllInitialsImage} on:manuelleClicked={handleManuelleClick} on:StampClicked={handleStampClick} on:signClicked={handleSignClick}
+    <LeftMenu class="flex-shrink-0" on:initialsClicked={handleInitialsClick} on:allInitialsClicked={handleAllInitialsImage('initial')} on:handleAllInitialsImage={handleAllInitialsImage('sig')} on:manuelleClicked={handleManuelleClick} on:StampClicked={handleStampClick} on:signClicked={handleSignClick}
       on:emailClicked={()=>  { if(selectedPageIndex >= 0){ addTextEmail(); }}} 
       on:nameClicked={() => {if (selectedPageIndex >= 0) {
       addTextName();
@@ -1296,8 +1302,7 @@ async function addHtmlBlockInAllPages(htmlElement, typeSign) {
       </div>
     {/if}
     {#if pages.length > 0&&countFile==1} 
-    {zoomLevel}
-    <div class="w-full pages" style="width: 80%; margin-left: 6%; margin-top: 10%; float: right;overflow-y: auto;    padding-left: 4%;
+    <div class="w-full pages" style="width: 80%; margin-top: 10%; float: right;overflow-y: auto
     max-height: 90vh; transform: scale({zoomLevel /100});">
       <div class="flex-grow flex justify-center items-center">
         <input type="file" name="file" id="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.pptm,.opt" on:change={onUploadImage} class="hidden" />
@@ -1315,102 +1320,109 @@ async function addHtmlBlockInAllPages(htmlElement, typeSign) {
       <!-- <div class="ticket" style="top: 70px;cursor: pointer;"
       on:click={() => showModal = true}
       >Start</div> -->
-
-      {#each pages as page, pIndex (page)}
-        <div
-          id={`page-${pIndex}`}
-          class="p-5 w-full flex flex-col items-center overflow-hidden"
-          on:mousedown={() => selectPage(pIndex)}
-          on:touchstart={() => selectPage(pIndex)}>
-
+          {#each pages as page, pIndex (page)}
           <div
-            class="relative shadow-lg"
-            class:shadow-outline={pIndex === selectedPageIndex}>
-          {#if pIndex === 0}
-          <div class="ticket"  style="cursor: pointer;left: -5px;position: absolute;"
-            on:click={() => showModal = true}
-            >Start</div>
-          {/if}
-                                <div style="position: absolute;
-    left: 0;">
-            <div on:click={() => showTranslate = !showTranslate} style="background: #38a53d;cursor: pointer;
-    width: 20px;
-    color: white;
-    position: absolute;
-    z-index: 2;
-    text-align: center;"> {showTranslate? 'X' : '>'}</div>
-            {#if pdfText.length>0&&showTranslate}   
-              <div style="        width: 200px;
-    background: rgb(226 255 227);
-    position: absolute;
-    padding: 8px;
-    left: 0px;
-    font-size: 11px;
-    color: rgb(32 131 36);
-    border-radius: 8px;
+            id={`page-${pIndex}`}
+            class="p-5 w-full flex flex-col items-center overflow-hidden"
+            on:mousedown={() => selectPage(pIndex)}
+            on:touchstart={() => selectPage(pIndex)}>
 
-">
-                {pdfText[pIndex].content}
+            <div
+              class="relative shadow-lg"
+              class:shadow-outline={pIndex === selectedPageIndex}>
+            {#if pIndex === 0}
+              <div
+                class="ticket"
+                style="cursor:pointer; left:-80px; position:absolute; z-index:10;"
+                on:click|stopPropagation={() => {
+                  showModal = true;
+                  console.log('tttt');
+                }}
+                on:mousedown|stopPropagation
+                on:touchstart|stopPropagation
+              >
+                Start
               </div>
             {/if}
-          </div>
-            <PDFPage
-              on:measure={e => {onMeasure(e.detail.scale, pIndex); detailsPage=e.detail}}
-              {page} />
-            <div
-              class="absolute top-0 left-0 transform origin-top-left"
-              style="transform: scale({pagesScale[pIndex]}); touch-action: none;">
-              {#each allObjects[pIndex] as object (object.id)}
-                {#if object.type === 'image'}
-                  <Image
-                    on:update={e => updateObject(object.id, e.detail)}
-                    on:delete={() => deleteObject(object.id)}
-                    file={object.file}
-                    payload={object.payload}
-                    x={object.x}
-                    y={object.y}
-                    width={object.width}
-                    height={object.height}
-                    pageScale={pagesScale[pIndex]} />
-                {:else if object.type === 'text'}
-                  <Text
-                    on:update={e => updateObject(object.id, e.detail)}
-                    on:delete={() => deleteObject(object.id)}
-                    on:selectFont={selectFontFamily}
-                    text={object.text}
-                    x={object.x}
-                    y={object.y}
-                    size={object.size}
-                    lineHeight={object.lineHeight}
-                    fontFamily={object.fontFamily}
-                    pageScale={pagesScale[pIndex]} />
-                {:else if object.type === 'drawing'}
-                  <Drawing
-                    on:update={e => updateObject(object.id, e.detail)}
-                    on:delete={() => deleteObject(object.id)}
-                    path={object.path}
-                    x={object.x}
-                    y={object.y}
-                    width={object.width}
-                    originWidth={object.originWidth}
-                    originHeight={object.originHeight}
-                    strokeColor={object.strokeColor}
-                    strokeWidth={object.strokeWidth}  
-                    pageScale={pagesScale[pIndex]} />
-                {/if}
-              {/each}
-            
+                                            <div style="position: absolute; left: -200px;margin-top: {pIndex === 0 ? '37px' : '0'};" >
+                        <div on:click={() => showTranslate = !showTranslate} style="right: -200px;background: #38a53d;cursor: pointer;
+                width: 20px;
+                color: white;
+                position: absolute;
+                z-index: 2;
+                text-align: center;"> {showTranslate? 'X' : '<'}</div>
+                        {#if pdfText.length>0&&showTranslate}   
+                          <div style="        width: 200px;
+                background: rgb(226 255 227);
+                position: absolute;
+                padding: 8px;
+                font-size: 11px;
+                color: rgb(32 131 36);
+                border-radius: 8px;
+
+            ">
+                  {pdfText[pIndex].content}
+                </div>
+              {/if}
             </div>
+              <PDFPage
+                on:measure={e => {onMeasure(e.detail.scale, pIndex); detailsPage=e.detail}}
+                {page} />
+              <div
+                class="absolute top-0 left-0 transform origin-top-left"
+                style="transform: scale({pagesScale[pIndex]}); touch-action: none;">
+                {#each allObjects[pIndex] as object (object.id)}
+                  {#if object.type === 'image'}
+                    <Image
+                      on:update={e => updateObject(object.id, e.detail)}
+                      on:delete={() => deleteObject(object.id)}
+                      file={object.file}
+                      payload={object.payload}
+                      x={object.x}
+                      y={object.y}
+                      width={object.width}
+                      height={object.height}
+                      pageScale={pagesScale[pIndex]} />
+                  {:else if object.type === 'text'}
+                    <Text
+                      on:update={e => updateObject(object.id, e.detail)}
+                      on:delete={() => deleteObject(object.id)}
+                      on:selectFont={selectFontFamily}
+                      text={object.text}
+                      x={object.x}
+                      y={object.y}
+                      size={object.size}
+                      lineHeight={object.lineHeight}
+                      fontFamily={object.fontFamily}
+                      pageScale={pagesScale[pIndex]} />
+                  {:else if object.type === 'drawing'}
+                    <Drawing
+                      on:update={e => updateObject(object.id, e.detail)}
+                      on:delete={() => deleteObject(object.id)}
+                      path={object.path}
+                      x={object.x}
+                      y={object.y}
+                      width={object.width}
+                      originWidth={object.originWidth}
+                      originHeight={object.originHeight}
+                      strokeColor={object.strokeColor}
+                      strokeWidth={object.strokeWidth}  
+                      pageScale={pagesScale[pIndex]} />
+                  {/if}
+                {/each}
+              
+              </div>
 
-          </div>
+                {#if pIndex === pages.length-1}
+                  <div class="ticket" style="    bottom: 6%;
+                      cursor: pointer;
+                      left: -80px;
+                      position: absolute;
+                      z-index: 10;
+                      ">End</div>
 
-        </div>
-
-      {/each}
-
-      <div class="ticket" style="bottom: 16%;">End</div>
-      {#if showTicket===true} 
-      <div class="ticket-sign" style="    bottom: 20%; right: {btnText='Initial'? '65%' : '20%' }" >
+                            {#if showTicket===true} 
+      <div class="ticket-sign" style="bottom: 60px; right: {btnText='Initial'? '65%' : '20%' }" >
         <div  style=" cursor: pointer;
     font-size: 14px;    height: 36px;
     border-radius: 8px;
@@ -1432,6 +1444,15 @@ async function addHtmlBlockInAllPages(htmlElement, typeSign) {
           </div>
       </div>
       {/if}
+                {/if}
+
+            </div>
+
+          </div>
+
+        {/each}
+
+
 
       <!-- <div class="ticket" style="bottom: 210px;">Date</div>
       {#if showTicketDate===true} 
@@ -1830,8 +1851,6 @@ async function addHtmlBlockInAllPages(htmlElement, typeSign) {
     align-content: center;
   }
   .ticket-sign{
-    bottom: 243px;
-    right: 133px;
     justify-self: right;
     background: none;
     width: 130px;
