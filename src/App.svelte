@@ -15,9 +15,10 @@
   import Login from './Login.svelte';
   import Register from './Register.svelte';
   import ProfilePage from './Profile.svelte';
+  import PricingModal from './PricingModal.svelte';
   import html2canvas from "html2canvas";
   import LogoMenu from "./components/LogoMenu.svelte";
-
+  import echo from "./echo.js";
   import {
     readAsArrayBuffer,
     readAsImage,
@@ -25,19 +26,17 @@
     readAsDataURL
   } from "./utils/asyncReader.js";
   import { ggID } from "./utils/helper.js";
-  import { save } from "./utils/PDF.js";
+  import { save, getPDFAsBlob, saveAndGetPDF } from "./utils/PDF.js";
   	import { currentLang,translations, translateAll } from './stores/translation.js';
     
 	let loadingTrans = false;
   let showModal = false;
-
+let messages = "Déverrouiller l'accès\nPour des raisons de sécurité, votre accès est limité.\nDemandez un nouveau lien pour accéder aux documents."
 // ip adress : 83.199.131.217  192.168.2.61 172.17.0.1
 	const textsToTranslate = [
-		'Choose File', 'Save', 'Profile', 'My files', 'File name', 'Logout'
+		'Choose File', 'Save', 'Profile', 'My files', 'File name', 'Logout', 'Pricing'
 	];
-    onMount(() => {
-		translateAll(textsToTranslate, 'en', $currentLang, val => loadingTrans = val);
-	});
+
 
 	// Reactively watch language changes
   $: if ($currentLang) {
@@ -47,7 +46,7 @@
         // formData.append('target', $currentLang);
         // formData.append('source', 'fr'); // or auto-detect if needed
 
-        // const res =  fetch('http://192.168.1.155:8000/api/extract-pdf-translated', {
+        // const res =  fetch('http://192.168.1.202:8000/api/extract-pdf-translated', {
         //   method: 'POST',
         //   body: formData,
         // });
@@ -72,7 +71,7 @@
   let showTicket=true;
   let showTicketDate=true;
   let btnText="Sign"
-
+let showShare=false;
   let username = localStorage.getItem("username");
   let email = localStorage.getItem("email");
   let codeSign = localStorage.getItem("codeSign");
@@ -84,9 +83,58 @@
   let colorSignBorder = '#2473c3';
   let autoChecked =false;
 let zoomLevel = 100;
-
+let pdfId = null;
+  let date = null;
+    let isAccessRestricted = false;
+  let today = new Date();
   // for test purpose
+  let showPricingModal=true;
+
   onMount(async () => {
+ showPricingModal=true;
+ const params = new URLSearchParams(window.location.search);
+  pdfId = params.get('id');
+   date = params.get('date');
+
+    if (date) {
+      const inputDate = new Date(date);
+      const maxDate = new Date(today);
+      maxDate.setDate(today.getDate() + 10);
+      
+      // Check if date is more than 10 days from today
+      isAccessRestricted = inputDate > maxDate;
+
+    }
+
+    echo.connector.pusher.connection.bind('connected', () => {
+  console.log("✅ WebSocket connected");
+});
+
+echo.connector.pusher.connection.bind('error', e => {
+  console.error("❌ WS error", e);
+});
+
+const channel = echo.channel(`pdf.${pdfId}`);
+
+console.log("subscribing to", `pdf.${pdfId}`);
+
+channel.subscribed(() => {
+  console.log("✅ subscribed to channel");
+});
+// if (pdfId) {
+      echo.channel(`pdf.${pdfId}`)
+        .listen(".pdf.updated", e => {
+          console.log("📩 event received", e);
+          handleRemoteChange(e);
+        });
+  // }
+
+  if (pdfId && !isAccessRestricted) {
+    console.log('PDF ID from URL:', pdfId);
+    loadPdfFromApi(pdfId);
+  }
+  		translateAll(textsToTranslate, 'en', $currentLang, val => loadingTrans = val);
+
     try {
         if (selectedColor) {
           colorSign=selectedColor;
@@ -106,6 +154,90 @@ let zoomLevel = 100;
       console.log(e);
     }
   });
+
+  async function loadPdfFromApi(id) {
+  try {
+    const res = await fetch(`http://192.168.1.202:8000/api/get-pdf/${id}`);
+    if (!res.ok) throw new Error('Failed to fetch PDF');
+
+    const blob = await res.blob();
+
+    // Convert blob to File so you can reuse your existing function
+    const file = new File([blob], `pdf_${id}.pdf`, { type: 'application/pdf' });
+
+    // Now use it like a normal uploaded file
+    await onUploadFile({ target: { files: [file] } });
+
+  } catch (e) {
+    console.error('Error loading PDF by ID:', e);
+    alert('Unable to load PDF');
+  }
+}
+
+
+  async function loadPdfFromId(id) {
+  try {
+    const res = await fetch(`http://192.168.1.202:8000/api/pdf/${id}`);
+
+    const blob = await res.blob();
+
+    const file = new File([blob], `pdf_${id}.pdf`, {
+      type: "application/pdf"
+    });
+
+    // reuse your logic
+    await handleFile(file);
+
+  } catch (e) {
+    console.error("Error loading pdf:", e);
+  }
+}
+
+async function handleFile(file) {
+  countFile = 0;
+
+  if (!file) return;
+
+  countFile = 1;
+
+  try {
+    if (file.type === "application/pdf") {
+      await addPDF(file);
+
+    } else if (
+      file.type.includes("word") ||
+      file.type.includes("powerpoint") ||
+      file.type.includes("officedocument")
+    ) {
+      loading = true;
+      const convertedFile = await convertWordToPdf(file);
+      if (convertedFile) {
+        await addPDF(convertedFile);
+        loading = false;
+        file = convertedFile;
+      }
+    }
+
+    const formData = new FormData();
+    formData.append('pdf', file);
+    formData.append('target', $currentLang);
+    formData.append('source', 'fr');
+
+    const res = await fetch('http://192.168.1.202:8000/api/extract-pdf-translated', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await res.json();
+    pdfText = data.pages;
+    console.log(pdfText[0].pageNumber);
+
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+
   function handleInitialsClick() {
     if (countFile==0) {
       message="You must upload file first";
@@ -284,13 +416,13 @@ let zoomLevel = 100;
     showModal3 = false;
 
     const formData = new FormData();
-    formData.append('pdf_file', file);
+    formData.append('file', file);
     if (!signatureImage) {
           formData.append('initials_image', initialImage);
     }else{
-          formData.append('image_file', initialImage);
+          formData.append('initials_image', initialImage);
     }
-    formData.append('side','left');
+    formData.append('position','right');
     formData.append('page_number', 0);
     formData.append('width', 80);
     formData.append('height', 40);
@@ -356,7 +488,7 @@ let zoomLevel = 100;
     formData.append('target', $currentLang);
     formData.append('source', 'fr'); // or auto-detect if needed
 
-    const res = await fetch('http://192.168.1.155:8000/api/extract-pdf-translated', {
+    const res = await fetch('http://192.168.1.202:8000/api/extract-pdf-translated', {
       method: 'POST',
       body: formData,
     });
@@ -408,7 +540,7 @@ let pdfText=[];
     formData.append('target', $currentLang);
     formData.append('source', 'fr'); // or auto-detect if needed
 
-    const res = await fetch('http://192.168.1.155:8000/api/extract-pdf-translated', {
+    const res = await fetch('http://192.168.1.202:8000/api/extract-pdf-translated', {
       method: 'POST',
       body: formData,
     });
@@ -431,7 +563,7 @@ async function convertWordToPdf(wordFile) {
   formData.append("file", wordFile);
 
   try {
-    const response = await fetch("http://192.168.1.155:8000/api/convert-word-to-pdf", {
+    const response = await fetch("http://192.168.1.202:8000/api/convert-word-to-pdf", {
       method: "POST",
       body: formData,
     });
@@ -793,10 +925,25 @@ async function onUploadImage(e) {
         payload: img,
         file
       };
+          const objectToServer = {
+      id,
+        type: "image",
+        width,
+        height,
+        x,
+        y,
+        file,
+      owner: username,
+      color: generateColorFromName(username)
+    };
 
       allObjects = allObjects.map((objects, pIndex) =>
         pIndex === selectedPageIndex ? [...objects, object] : objects
       );
+          syncToServer("add", {
+  ...objectToServer,
+  pageIndex: selectedPageIndex
+});
     } catch (e) {
       console.log(`Fail to add image.`, e);
     }
@@ -863,21 +1010,41 @@ async function onUploadImage(e) {
   function addTextName(text = "Salem Khmis") {
     const id = genID();
     fetchFont(currentFont);
-    const object = {
-      id,
-      text: username,
-      type: "text",
-      size: 16,
-      width: 0, // recalculate after editing
-      lineHeight: 1.4,
-      fontFamily: currentFont,
-      x: 0,
-      y: 0
-    };
-    allObjects = allObjects.map((objects, pIndex) =>
-      pIndex === selectedPageIndex ? [...objects, object] : objects
-    );
+     const object = {
+    id,
+    text: username,
+    type: "text",
+    size: 16,
+    x: 0,
+    y: 0,
+    owner: username,
+    color: generateColorFromName(username)
+  };
+
+  allObjects = allObjects.map((objects, pIndex) =>
+    pIndex === selectedPageIndex ? [...objects, object] : objects
+  );
+
+      syncToServer("add", {
+  ...object,
+  pageIndex: selectedPageIndex
+});
   }
+  function generateColorFromName(name) {
+  let hash = 0;
+
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  let color = "#";
+  for (let i = 0; i < 3; i++) {
+    const value = (hash >> (i * 8)) & 0xff;
+    color += value.toString(16).padStart(2, "0");
+  }
+
+  return color;
+}
   function scrollToPage(index) {
     const pageElement = document.getElementById(`page-${index}`);
     if (pageElement) {
@@ -953,39 +1120,299 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
     scrollToPage(index);
   }
   function updateObject(objectId, payload) {
-    allObjects = allObjects.map((objects, pIndex) =>
-      pIndex == selectedPageIndex
-        ? objects.map(object =>
-            object.id === objectId ? { ...object, ...payload } : object
-          )
-        : objects
-    );
+  allObjects = allObjects.map((objects, pIndex) =>
+    pIndex == selectedPageIndex
+      ? objects.map(o => o.id === objectId ? { ...o, ...payload } : o)
+      : objects
+  );
+
+  syncToServer("update", { id: objectId, ...payload });
   }
   function deleteObject(objectId) {
-    allObjects = allObjects.map((objects, pIndex) =>
-      pIndex == selectedPageIndex
-        ? objects.filter(object => object.id !== objectId)
-        : objects
-    );
+      allObjects = allObjects.map((objects, pIndex) =>
+    pIndex == selectedPageIndex
+      ? objects.filter(o => o.id !== objectId)
+      : objects
+  );
+
+  syncToServer("delete", { id: objectId });
   }
+
+  async function syncToServer(action, object) {
+  await fetch(`http://192.168.1.202:8000/api/pdf-sync/${pdfId}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action,
+      object
+    })
+  });
+}
+async function handleRemoteChange(e) {
+
+  const { action, object } = e;
+
+  if (action === "add") {
+
+    if (object.type === "image") {
+
+      // recreate the image from base64
+      const img = await readAsImage(object.file);
+
+      const newObject = {
+        ...object,
+        payload: img
+      };
+
+      allObjects[object.pageIndex] = [
+        ...allObjects[object.pageIndex],
+        newObject
+      ];
+
+    } else {
+
+      // text or other objects
+      allObjects[object.pageIndex] = [
+        ...allObjects[object.pageIndex],
+        object
+      ];
+
+    }
+
+  }
+
+}
   function onMeasure(scale, i) {
     pagesScale[i] = scale;
   }
   // FIXME: Should wait all objects finish their async work
+
+  
+  // Get email from user
+  let recipientEmail = '';
+  let emailSubject = 'PDF Shared by Salem Khmis';
+  let emailMessage = 'Please find the attached PDF document.';
+    let senderName = 'TilscoSign';
+  let senderEmail = 'salemkhmis003@gmail.com';
+  let replyToEmail = 'support@tilscoSign.com';
+  // Your original save function (unchanged)
   async function savePDF() {
     if (!pdfFile || saving || !pages.length) return;
     saving = true;
     try {
-      await save(pdfFile, allObjects, pdfName, pagesScale);
+      await save(pdfFile, allObjects, pdfName);
     } catch (e) {
       console.log(e);
     } finally {
       saving = false;
     }
   }
+  
+  // NEW: Send PDF to Laravel backend
+  async function sendToBackend() {
+    if (!pdfFile || saving || !pages.length) return;
+    saving = true;
+    
+    try {
+      // Get PDF as blob
+      const pdfBlob = await getPDFAsBlob(pdfFile, allObjects, pdfName);
+      
+      // Create FormData
+      const formData = new FormData();
+      formData.append('pdf', pdfBlob, `${pdfName}.pdf`);
+      formData.append('filename', pdfName);
+      formData.append('metadata', JSON.stringify({
+        pageCount: pages.length,
+        timestamp: new Date().toISOString()
+      }));
+      
+      // Send to Laravel
+      const response = await fetch('http://192.168.1.202:8000/api/save-pdf', {
+        method: 'POST',
+        body: formData,
+        // If you have authentication, add headers
+        headers: {
+          'Accept': 'application/json',
+          // Add CSRF token if needed
+          // 'X-CSRF-TOKEN': getCsrfToken()
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Server responded with ${response.status}`);
+      }
+      
+      const result = await response.json();
+      console.log('PDF saved to backend:', result);
+      return result;
+      
+    } catch (error) {
+      console.error('Error sending to backend:', error);
+      alert('Failed to send PDF to server: ' + error.message);
+      throw error;
+    } finally {
+      saving = false;
+    }
+  }
+  
+ async function sendPDFByEmail() {
+    if (!pdfFile || saving || !pages.length) return;
+    if (!recipientEmail) {
+      alert('Please enter recipient email address');
+      return;
+    }
+    
+    saving = true;
+    
+    try {
+      const pdfBlob = await getPDFAsBlob(pdfFile, allObjects, pdfName);
+      
+      const formData = new FormData();
+      formData.append('pdf', pdfBlob, `${pdfName}.pdf`);
+      formData.append('recipient_email', recipientEmail);
+      formData.append('sender_name', senderName);
+      formData.append('sender_email', senderEmail);
+      formData.append('reply_to', replyToEmail);
+      formData.append('subject', emailSubject);
+      formData.append('message', emailMessage);
+      formData.append('filename', pdfName);
+
+      const storeResponse = await fetch('http://192.168.1.202:8000/api/store-pdf', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json'
+        },
+        body: formData
+      });
+
+      const storeData = await storeResponse.json();
+      const pdfId = storeData.id;
+      console.log(pdfId);
+      
+      
+      formData.append('pdf_id', pdfId);
+      const response = await fetch('http://192.168.1.202:8000/api/send-pdf-email', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json'
+        },
+        body: formData
+      });
+
+      
+      // const response = await fetch('http://192.168.1.202:8000/api/send-pdf-email', {
+      //   method: 'POST',
+      //   body: formData,
+      //   headers: {
+      //     'Accept': 'application/json',
+      //   }
+      // });
+
+      // await fetch('http://192.168.1.202:8000/api/store-pdf', {
+      //   method: 'POST',
+      //   headers: {
+      //     'Accept': 'application/json'
+      //   },
+      //   body: formData
+      // });
+      
+      if (!response.ok) {
+        throw new Error(`Server responded with ${response.status}`);
+      }
+      
+      const result = await response.json();
+      alert('PDF sent to email successfully!');
+      return result;
+      
+    } catch (error) {
+      console.error('Error sending email:', error);
+      alert('Failed to send email: ' + error.message);
+      throw error;
+    } finally {
+      saving = false;
+    }
+  }
+  
+  // NEW: Combined function - save locally and send to backend/email
+  async function saveAndSend(options = {}) {
+    const { 
+      saveLocal = true, 
+      sendBackend = false, 
+      sendEmail = false 
+    } = options;
+    
+    if (!pdfFile || saving || !pages.length) return;
+    saving = true;
+    
+    try {
+      let results = {};
+      
+      // Get PDF bytes once (reusable)
+      const pdfBytes = await saveAndGetPDF(pdfFile, allObjects, pdfName);
+      const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+      
+      // Save to backend if requested
+      if (sendBackend) {
+        const backendFormData = new FormData();
+        backendFormData.append('pdf', pdfBlob, `${pdfName}.pdf`);
+        backendFormData.append('filename', pdfName);
+        
+        const backendResponse = await fetch('http://192.168.1.202:8000/api/save-pdf', {
+          method: 'POST',
+          body: backendFormData,
+        });
+        
+        results.backend = await backendResponse.json();
+      }
+      
+      // Send email if requested
+      if (sendEmail && recipientEmail) {
+        const emailFormData = new FormData();
+        emailFormData.append('pdf', pdfBlob, `${pdfName}.pdf`);
+        emailFormData.append('email', recipientEmail);
+        emailFormData.append('subject', emailSubject);
+        emailFormData.append('message', emailMessage);
+        
+        const emailResponse = await fetch('http://192.168.1.202:8000/api/send-pdf-email', {
+          method: 'POST',
+          body: emailFormData,
+        });
+        
+        results.email = await emailResponse.json();
+      }
+      
+      return results;
+      
+    } catch (error) {
+      console.error('Error in saveAndSend:', error);
+      throw error;
+    } finally {
+      saving = false;
+    }
+  }
+  
+  // Helper function to get CSRF token (if using Laravel Sanctum or similar)
+  function getCsrfToken() {
+    // If using meta tag
+    const metaTag = document.querySelector('meta[name="csrf-token"]');
+    if (metaTag) return metaTag.getAttribute('content');
+    
+    // If using cookie
+    const token = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
+    if (token) return decodeURIComponent(token[1]);
+    
+    return null;
+  }
+
+
+
+
+
+
   let authenticated = false;
   let showRegister = false;
   let profile = false;
+  let pricing = false;
   let showTranslate=true;
 
   function handleLogin(event) {
@@ -1004,6 +1431,8 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
   }
   function handleGoToHome() {
     profile = false;
+    pricing= false;
+    showPricingModal= false;
     logoutMenu = false;
     authenticated=true;
   }
@@ -1033,6 +1462,9 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
       pIndex === selectedPageIndex ? [...objects, object] : objects
     );
 }
+function handleShare(){
+  showShare=!showShare;
+}
   async function addHtmlBlockAsImage(htmlElement,typeSign) {
   try {
     // Render HTML to canvas with transparent background
@@ -1054,7 +1486,19 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
     const { width, height } = img;
 
     // Create the object for the PDF
-    const object = {
+    const objectToServer = {
+      id,
+      type: "image",
+      width,
+      height,
+      x: typeSign=='initial'|| btnText=='Initial' ? 0 :  pageWidth - width-15,
+      y: pageHeight - height-15,
+       file: imgUrl,
+      owner: username,
+      color: generateColorFromName(username)
+    };
+
+        const object = {
       id,
       type: "image",
       width,
@@ -1069,6 +1513,10 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
     allObjects = allObjects.map((objects, pIndex) =>
       pIndex === selectedPageIndex ? [...objects, object] : objects
     );
+    syncToServer("add", {
+  ...objectToServer,
+  pageIndex: selectedPageIndex
+});
   } catch (e) {
     console.log("Failed to add HTML block as image.", e);
   }
@@ -1123,20 +1571,70 @@ async function addHtmlBlockInAllPages(htmlElement, typeSign) {
   on:dragover|preventDefault
   on:drop|preventDefault={onUploadFile} />
 <Tailwind />
-{#if authenticated}
-
-  {#if profile} 
+{#if isAccessRestricted }
+<div class="access-restricted-container">
+  <div class="access-restricted-card">
+    <div class="icon-wrapper">
+      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lock-icon">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+      </svg>
+    </div>
+    
+    <h1 class="title">Accès Restreint</h1>
+    
+    <div class="message-box">
+      {#each messages.split('\n') as line}
+        <p class="message-line">{line}</p>
+      {/each}
+    </div>
+    
+    <div class="actions">
+      <button class="primary-btn" on:click={() => window.location.href = '/request-new-link'}>
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+        </svg>
+        Demander un nouveau lien
+      </button>
+      
+      <button class="secondary-btn" on:click={() => window.history.back()}>
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon">
+          <path d="M19 12H5"></path>
+          <path d="M12 19l-7-7 7-7"></path>
+        </svg>
+        Retour
+      </button>
+    </div>
+    
+    <div class="footer">
+      <p class="footer-text">Besoin d'aide ? <a href="/contact" class="help-link">Contactez le support</a></p>
+    </div>
+  </div>
+</div>
+{:else if authenticated}
+  {#if pricing} 
 
 
   <main class="flex flex-row min-h-screen bg-gray-100">
-    <LeftMenu class="flex-shrink-0" on:initialsClicked={handleInitialsClick} on:allInitialsClicked={handleAllInitialsImage('initial')} on:handleAllInitialsImage={handleAllInitialsImage('sig')} on:manuelleClicked={handleManuelleClick} on:StampClicked={handleStampClick}  on:signClicked={handleSignClick} 
+    <LeftMenu class="flex-shrink-0" on:initialsClicked={handleInitialsClick} on:allInitialsClicked={() => handleAllInitialsImage('initial')} on:handleAllInitialsImage={() => handleAllInitialsImage('sig')} on:manuelleClicked={handleManuelleClick} on:StampClicked={handleStampClick}  on:signClicked={handleSignClick} 
+    on:emailClicked={()=>  { if(selectedPageIndex >= 0){ addTextEmail(); }}} 
+    on:nameClicked={() => {if (selectedPageIndex >= 0) {addTextName(); }}} />
+    <PricingModal on:goToHome={handleGoToHome}/>
+  </main>
+
+  {:else if profile} 
+
+
+  <main class="flex flex-row min-h-screen bg-gray-100">
+    <LeftMenu class="flex-shrink-0" on:initialsClicked={handleInitialsClick} on:allInitialsClicked={() => handleAllInitialsImage('initial')} on:handleAllInitialsImage={() => handleAllInitialsImage('sig')} on:manuelleClicked={handleManuelleClick} on:StampClicked={handleStampClick}  on:signClicked={handleSignClick} 
     on:emailClicked={()=>  { if(selectedPageIndex >= 0){ addTextEmail(); }}} 
     on:nameClicked={() => {if (selectedPageIndex >= 0) {addTextName(); }}} />
     <ProfilePage on:goToHome={handleGoToHome}/>
   </main>
   {:else}
   <main class="flex flex-row min-h-screen bg-gray-100">
-    <LeftMenu class="flex-shrink-0" on:initialsClicked={handleInitialsClick} on:allInitialsClicked={handleAllInitialsImage('initial')} on:handleAllInitialsImage={handleAllInitialsImage('sig')} on:manuelleClicked={handleManuelleClick} on:StampClicked={handleStampClick} on:signClicked={handleSignClick}
+    <LeftMenu class="flex-shrink-0" on:initialsClicked={handleInitialsClick} on:allInitialsClicked={() => handleAllInitialsImage('initial')} on:handleAllInitialsImage={() => handleAllInitialsImage('sig')} on:manuelleClicked={handleManuelleClick} on:StampClicked={handleStampClick} on:signClicked={handleSignClick}
       on:emailClicked={()=>  { if(selectedPageIndex >= 0){ addTextEmail(); }}} 
       on:nameClicked={() => {if (selectedPageIndex >= 0) {
       addTextName();
@@ -1265,8 +1763,9 @@ async function addHtmlBlockInAllPages(htmlElement, typeSign) {
           <div class="right-menu">
             <ul>
               <li on:click={() => profile = true} style="    margin-bottom: 6px;">{$translations['Profile']}</li>
+              <li on:click={() => pricing = true} style="  border-top: solid 1px #38a53d63;   margin-bottom: 6px;">{$translations['Pricing']}</li>
               <li  style="border-top: solid 1px #38a53d63;     margin-bottom: 6px;" > {$translations['My files']}</li>
-              <li on:click={() => {authenticated = false; logoutMenu = false; showRegister = false; localStorage.removeItem("session");}} style="border-top: solid 1px #38a53d63;" >{$translations['Logout']}</li>
+              <li on:click={() => {authenticated = false; logoutMenu = false; showRegister = false; localStorage.removeItem("session");  localStorage.removeItem("token");}} style="border-top: solid 1px #38a53d63;" >{$translations['Logout']}</li>
             </ul>
           </div>
           {/if}
@@ -1317,6 +1816,116 @@ async function addHtmlBlockInAllPages(htmlElement, typeSign) {
           Add image 
         </label>
       </div>
+
+      <div class="flex-grow flex justify-center items-center mt-4 mb-4" style="    float: left;
+    margin-left: 20px;" on:click={handleShare}>
+        <label class="font-bold otherFile" >
+          <div class="mr-2">
+            
+          </div>
+          Share PDF
+        </label>
+      </div>
+      {#if showShare} 
+        <div class="email-section" style="margin-top: 20px; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+    <!-- <h3 style="margin-top: 0;">Send PDF by Email</h3> -->
+    
+    <!-- Sender Information (can be hidden if using defaults) -->
+    <details style="margin-bottom: 15px; padding: 10px; background: #f5f5f5; border-radius: 5px;">
+        <summary style="cursor: pointer; font-weight: bold;">Sender Information</summary>
+        <div style="margin-top: 10px;">
+            <div style="margin-bottom: 10px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">
+                    Sender Name:
+                </label>
+                <input 
+                    type="text" 
+                    bind:value={senderName}
+                    placeholder="Your Application Name"
+                    style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"
+                />
+            </div>
+            
+            <div style="margin-bottom: 10px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">
+                    Sender Email (From):
+                </label>
+                <input 
+                    type="email" 
+                    bind:value={senderEmail}
+                    placeholder="noreply@yourdomain.com"
+                    style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"
+                />
+            </div>
+            
+            <div style="margin-bottom: 10px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">
+                    Reply-To Email:
+                </label>
+                <input 
+                    type="email" 
+                    bind:value={replyToEmail}
+                    placeholder="support@yourdomain.com"
+                    style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"
+                />
+            </div>
+        </div>
+    </details>
+    
+    <!-- Recipient Information -->
+    <div style="margin-bottom: 10px;">
+        <label style="display: block; margin-bottom: 5px; font-weight: bold;">
+            Recipient Email:
+        </label>
+        <input 
+            type="email" 
+            bind:value={recipientEmail}
+            placeholder="recipient@example.com"
+            style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"
+            required
+        />
+    </div>
+    
+    <div style="margin-bottom: 10px;">
+        <label style="display: block; margin-bottom: 5px; font-weight: bold;">
+            Subject:
+        </label>
+        <input 
+            type="text" 
+            bind:value={emailSubject}
+            style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"
+        />
+    </div>
+    
+    <div style="margin-bottom: 15px;">
+        <label style="display: block; margin-bottom: 5px; font-weight: bold;">
+            Message:
+        </label>
+        <textarea 
+            bind:value={emailMessage}
+            rows="4"
+            style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; resize: vertical;"
+            placeholder="Please find the attached PDF document."
+        />
+    </div>
+    
+    <button 
+        on:click={sendPDFByEmail} 
+        disabled={saving || !recipientEmail}
+        style="background-color: #4CAF50; color: white; padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px;"
+    >
+        {saving ? 'Sending...' : 'Send PDF via Email'}
+    </button>
+    
+    <!-- Preview sender info -->
+    <div style="margin-top: 15px; padding: 10px; background: #e8f5e9; border-radius: 5px; font-size: 14px;">
+        <strong>Email will be sent:</strong>
+        <div>From: {senderName} &lt;{senderEmail}&gt;</div>
+        <div>To: {recipientEmail || 'Not specified'}</div>
+        <div>Reply-To: {replyToEmail}</div>
+    </div>
+</div>
+      {/if}
       <!-- <div class="ticket" style="top: 70px;cursor: pointer;"
       on:click={() => showModal = true}
       >Start</div> -->
@@ -1328,7 +1937,7 @@ async function addHtmlBlockInAllPages(htmlElement, typeSign) {
             on:touchstart={() => selectPage(pIndex)}>
 
             <div
-              class="relative shadow-lg"
+              class="relative shadow-lg"  style="margin-left: {showTranslate ? 'auto' : '0'}"
               class:shadow-outline={pIndex === selectedPageIndex}>
             {#if pIndex === 0}
               <div
@@ -1678,13 +2287,135 @@ async function addHtmlBlockInAllPages(htmlElement, typeSign) {
 </div>
 {/if}
 
+{#if showPricingModal}
+  <PricingModal on:goToHome={handleGoToHome}/>
+{/if}
 {#if loadingTrans}
 	<div class="loader-overlay">
 		<div class="spinner"></div>
 	</div>
 {/if}
 <style>
- 
+   .access-restricted-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
+  }
+  
+  .access-restricted-card {
+    background: white;
+    border-radius: 20px;
+    padding: 40px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+    text-align: center;
+  }
+  
+  .icon-wrapper {
+    margin-bottom: 24px;
+  }
+  
+  .lock-icon {
+    color: rgb(59, 168, 58);
+    width: 80px;
+    height: 80px;
+  }
+  
+  .title {
+    color: #2d3436;
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  
+  .message-box {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 32px;
+    border-left: 4px solid rgb(59, 168, 58);
+  }
+  
+  .message-line {
+    color: #495057;
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 8px 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  
+  .actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  
+  button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 14px 24px;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  
+  .primary-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+  }
+  
+  .primary-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+  }
+  
+  .secondary-btn {
+    background: #f1f3f5;
+    color: #495057;
+  }
+  
+  .secondary-btn:hover {
+    background: #e9ecef;
+    transform: translateY(-2px);
+  }
+  
+  .btn-icon {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .footer {
+    border-top: 1px solid #e9ecef;
+    padding-top: 20px;
+  }
+  
+  .footer-text {
+    color: #6c757d;
+    font-size: 14px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  
+  .help-link {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  
+  .help-link:hover {
+    text-decoration: underline;
+  }
     .loader-text {
     margin-top: 1rem;
     font-size: 1.5rem;
@@ -1814,7 +2545,20 @@ async function addHtmlBlockInAllPages(htmlElement, typeSign) {
     cursor: pointer;
     height: 80px;
   }
-
+  button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  .pdf-actions{
+    margin: 30px;
+  }
+  button {
+    transition: opacity 0.2s;
+  }
+  
+  button:hover:not(:disabled) {
+    opacity: 0.9;
+  }
   .modal {
     background: white;
     padding: 50px 0px;

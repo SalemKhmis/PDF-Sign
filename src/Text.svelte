@@ -14,6 +14,9 @@
   export let pageScale = 1;
   const Families = Object.keys(Fonts);
   const dispatch = createEventDispatcher();
+
+    let username = localStorage.getItem("username");
+  let email = localStorage.getItem("email");
   let startX;
   let startY;
   let editable;
@@ -103,6 +106,21 @@
   function onFocusTool() {
     operation = "tool";
   }
+    function generateColorFromName(name) {
+  let hash = 0;
+
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  let color = "#";
+  for (let i = 0; i < 3; i++) {
+    const value = (hash >> (i * 8)) & 0xff;
+    color += value.toString(16).padStart(2, "0");
+  }
+
+  return color;
+}
   async function onBlurTool() {
     if (operation !== "tool" || operation === "edit") return;
     dispatch("update", {
@@ -251,4 +269,11 @@
     class="outline-none whitespace-no-wrap"
     style="font-size: {_size}px; font-family: '{_fontFamily}', serif;
     line-height: {_lineHeight}; -webkit-user-select: text;" />
+
+    <div style="border:2px solid {generateColorFromName("Salem khmis")}">
+  <small style="position:absolute;top:-16px;right:0;color: {generateColorFromName("Salem khmis")}">
+    {"Salem khmis"}
+  </small>
+
+</div>
 </div>

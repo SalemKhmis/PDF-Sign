@@ -7,34 +7,55 @@
     let username = '';
     const dispatch = createEventDispatcher();
   
-    async function handleSubmit() {
-      if (email && password && username) {
-        const response = await fetch('http://tplussgest.ddns.net:32147/auth/register', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-  "username": username,
-  "email": email,
-  "password": password
-})
-        });
-  
-        if (response.ok) {
-          alert('Registration successful!');
-          dispatch('register', {
-  "username": username,
-  "email": email,
-  "password": password
-});
-        } else {
-          alert('Registration failed. Please try again.');
-        }
+async function handleSubmit() {
+  if (!email || !password || !username) {
+    alert('Please fill all fields');
+    return;
+  }
+
+  try {
+    const response = await fetch('http://192.168.1.202:8000/api/auth/register', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        username,
+        email,
+        password
+      })
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+
+      dispatch('register', {
+        username,
+        email
+      });
+
+      // Optional: store token
+      localStorage.setItem('token', data.token);
+                localStorage.setItem("username", username);
+          localStorage.setItem("email", email);
+
+    } else {
+      // Laravel validation errors (422)
+      if (data.errors) {
+        alert(Object.values(data.errors).flat().join('\n'));
       } else {
-        alert('Please enter both email and password');
+        alert(data.message || 'Registration failed');
       }
     }
+
+  } catch (error) {
+    console.error(error);
+    alert('Server unreachable');
+  }
+}
+
   
     function goToLogin() {
       dispatch('goToLogin');
