@@ -6,6 +6,7 @@ import livereload from 'rollup-plugin-livereload';
 import { terser } from 'rollup-plugin-terser';
 import sveltePreprocess from 'svelte-preprocess';
 import babel from '@rollup/plugin-babel';
+import css from 'rollup-plugin-css-only';
 const production = !process.env.ROLLUP_WATCH;
 
 export default {
@@ -32,6 +33,7 @@ export default {
       browser: true,
       dedupe: ['svelte'],
     }),
+     css({ output: 'bundle.css' }), // 👈 ADD THIS
   commonjs({
     include: ['node_modules/**'],
     transformMixedEsModules: true,
