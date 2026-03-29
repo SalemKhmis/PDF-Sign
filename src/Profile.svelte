@@ -160,7 +160,7 @@
       originHeight,
       width: originWidth * scale,
       scale,
-      text: localStorage.getItem("codeSign")
+      text: '68s56B70s51'
     };
     allObjects = allObjects.map((objects, pIndex) =>
       pIndex === selectedPageIndex ? [...objects, object] : objects,

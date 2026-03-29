@@ -32,7 +32,7 @@
   let selectedColor = localStorage.getItem("selectedColor");
   let selectedColorBorder = localStorage.getItem("selectedColorBorder");
   let colorSignBorder = '#2473c3';
-  let codeSign = localStorage.getItem("codeSign");
+  let codeSign = '68s56B70s51';
 
     onMount(async () => {
     try {

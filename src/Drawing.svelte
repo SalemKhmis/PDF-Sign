@@ -12,7 +12,7 @@
   export let path;
   export let strokeColor = "black"; // Default stroke color
   export let strokeWidth = 5; // Default stroke width
-  let codeSign = localStorage.getItem("codeSign");
+  let codeSign = '68s56B70s51';
 
   const dispatch = createEventDispatcher();
   let startX;
