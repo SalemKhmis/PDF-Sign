@@ -89,7 +89,7 @@ let pdfId = null;
     let isAccessRestricted = false;
   let today = new Date();
   // for test purpose
-  let showPricingModal=true;
+  let showPricingModal=false;
 
   onMount(async () => {
 //  showPricingModal=true;
