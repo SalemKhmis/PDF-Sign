@@ -16,6 +16,7 @@
   import Register from './Register.svelte';
   import ProfilePage from './Profile.svelte';
   import PricingModal from './PricingModal.svelte';
+  import Payment from './Payment.svelte';
   import html2canvas from "html2canvas";
   import LogoMenu from "./components/LogoMenu.svelte";
   import echo from "./echo.js";
@@ -46,7 +47,7 @@ let messages = "Déverrouiller l'accès\nPour des raisons de sécurité, votre a
         // formData.append('target', $currentLang);
         // formData.append('source', 'fr'); // or auto-detect if needed
 
-        // const res =  fetch('http://192.168.1.202:8000/api/extract-pdf-translated', {
+        // const res =  fetch('http://tplussgest.ddns.net:32147/api/extract-pdf-translated', {
         //   method: 'POST',
         //   body: formData,
         // });
@@ -91,7 +92,7 @@ let pdfId = null;
   let showPricingModal=true;
 
   onMount(async () => {
- showPricingModal=true;
+//  showPricingModal=true;
  const params = new URLSearchParams(window.location.search);
   pdfId = params.get('id');
    date = params.get('date');
@@ -157,7 +158,7 @@ channel.subscribed(() => {
 
   async function loadPdfFromApi(id) {
   try {
-    const res = await fetch(`http://192.168.1.202:8000/api/get-pdf/${id}`);
+    const res = await fetch(`http://tplussgest.ddns.net:32147/api/get-pdf/${id}`);
     if (!res.ok) throw new Error('Failed to fetch PDF');
 
     const blob = await res.blob();
@@ -177,7 +178,7 @@ channel.subscribed(() => {
 
   async function loadPdfFromId(id) {
   try {
-    const res = await fetch(`http://192.168.1.202:8000/api/pdf/${id}`);
+    const res = await fetch(`http://tplussgest.ddns.net:32147/api/pdf/${id}`);
 
     const blob = await res.blob();
 
@@ -223,7 +224,7 @@ async function handleFile(file) {
     formData.append('target', $currentLang);
     formData.append('source', 'fr');
 
-    const res = await fetch('http://192.168.1.202:8000/api/extract-pdf-translated', {
+    const res = await fetch('http://tplussgest.ddns.net:32147/api/extract-pdf-translated', {
       method: 'POST',
       body: formData,
     });
@@ -488,7 +489,7 @@ async function handleFile(file) {
     formData.append('target', $currentLang);
     formData.append('source', 'fr'); // or auto-detect if needed
 
-    const res = await fetch('http://192.168.1.202:8000/api/extract-pdf-translated', {
+    const res = await fetch('http://tplussgest.ddns.net:32147/api/extract-pdf-translated', {
       method: 'POST',
       body: formData,
     });
@@ -540,7 +541,7 @@ let pdfText=[];
     formData.append('target', $currentLang);
     formData.append('source', 'fr'); // or auto-detect if needed
 
-    const res = await fetch('http://192.168.1.202:8000/api/extract-pdf-translated', {
+    const res = await fetch('http://tplussgest.ddns.net:32147/api/extract-pdf-translated', {
       method: 'POST',
       body: formData,
     });
@@ -563,7 +564,7 @@ async function convertWordToPdf(wordFile) {
   formData.append("file", wordFile);
 
   try {
-    const response = await fetch("http://192.168.1.202:8000/api/convert-word-to-pdf", {
+    const response = await fetch("http://tplussgest.ddns.net:32147/api/convert-word-to-pdf", {
       method: "POST",
       body: formData,
     });
@@ -1139,7 +1140,7 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
   }
 
   async function syncToServer(action, object) {
-  await fetch(`http://192.168.1.202:8000/api/pdf-sync/${pdfId}`, {
+  await fetch(`http://tplussgest.ddns.net:32147/api/pdf-sync/${pdfId}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -1227,7 +1228,7 @@ async function handleRemoteChange(e) {
       }));
       
       // Send to Laravel
-      const response = await fetch('http://192.168.1.202:8000/api/save-pdf', {
+      const response = await fetch('http://tplussgest.ddns.net:32147/api/save-pdf', {
         method: 'POST',
         body: formData,
         // If you have authentication, add headers
@@ -1277,7 +1278,7 @@ async function handleRemoteChange(e) {
       formData.append('message', emailMessage);
       formData.append('filename', pdfName);
 
-      const storeResponse = await fetch('http://192.168.1.202:8000/api/store-pdf', {
+      const storeResponse = await fetch('http://tplussgest.ddns.net:32147/api/store-pdf', {
         method: 'POST',
         headers: {
           'Accept': 'application/json'
@@ -1291,7 +1292,7 @@ async function handleRemoteChange(e) {
       
       
       formData.append('pdf_id', pdfId);
-      const response = await fetch('http://192.168.1.202:8000/api/send-pdf-email', {
+      const response = await fetch('http://tplussgest.ddns.net:32147/api/send-pdf-email', {
         method: 'POST',
         headers: {
           'Accept': 'application/json'
@@ -1300,7 +1301,7 @@ async function handleRemoteChange(e) {
       });
 
       
-      // const response = await fetch('http://192.168.1.202:8000/api/send-pdf-email', {
+      // const response = await fetch('http://tplussgest.ddns.net:32147/api/send-pdf-email', {
       //   method: 'POST',
       //   body: formData,
       //   headers: {
@@ -1308,7 +1309,7 @@ async function handleRemoteChange(e) {
       //   }
       // });
 
-      // await fetch('http://192.168.1.202:8000/api/store-pdf', {
+      // await fetch('http://tplussgest.ddns.net:32147/api/store-pdf', {
       //   method: 'POST',
       //   headers: {
       //     'Accept': 'application/json'
@@ -1357,7 +1358,7 @@ async function handleRemoteChange(e) {
         backendFormData.append('pdf', pdfBlob, `${pdfName}.pdf`);
         backendFormData.append('filename', pdfName);
         
-        const backendResponse = await fetch('http://192.168.1.202:8000/api/save-pdf', {
+        const backendResponse = await fetch('http://tplussgest.ddns.net:32147/api/save-pdf', {
           method: 'POST',
           body: backendFormData,
         });
@@ -1373,7 +1374,7 @@ async function handleRemoteChange(e) {
         emailFormData.append('subject', emailSubject);
         emailFormData.append('message', emailMessage);
         
-        const emailResponse = await fetch('http://192.168.1.202:8000/api/send-pdf-email', {
+        const emailResponse = await fetch('http://tplussgest.ddns.net:32147/api/send-pdf-email', {
           method: 'POST',
           body: emailFormData,
         });
@@ -1413,6 +1414,7 @@ async function handleRemoteChange(e) {
   let showRegister = false;
   let profile = false;
   let pricing = false;
+  let payment = false;
   let showTranslate=true;
 
   function handleLogin(event) {
@@ -1432,6 +1434,15 @@ async function handleRemoteChange(e) {
   function handleGoToHome() {
     profile = false;
     pricing= false;
+    payment =false;
+    showPricingModal= false;
+    logoutMenu = false;
+    authenticated=true;
+  }
+    function handleGoToPayment() {
+    profile = false;
+    pricing= false;
+    payment =true;
     showPricingModal= false;
     logoutMenu = false;
     authenticated=true;
@@ -1620,7 +1631,16 @@ async function addHtmlBlockInAllPages(htmlElement, typeSign) {
     <LeftMenu class="flex-shrink-0" on:initialsClicked={handleInitialsClick} on:allInitialsClicked={() => handleAllInitialsImage('initial')} on:handleAllInitialsImage={() => handleAllInitialsImage('sig')} on:manuelleClicked={handleManuelleClick} on:StampClicked={handleStampClick}  on:signClicked={handleSignClick} 
     on:emailClicked={()=>  { if(selectedPageIndex >= 0){ addTextEmail(); }}} 
     on:nameClicked={() => {if (selectedPageIndex >= 0) {addTextName(); }}} />
-    <PricingModal on:goToHome={handleGoToHome}/>
+        <PricingModal on:goToHome={handleGoToHome} on:goToPayment={handleGoToPayment}/>
+  </main>
+  {:else if payment} 
+
+
+  <main class="flex flex-row min-h-screen bg-gray-100">
+    <LeftMenu class="flex-shrink-0" on:initialsClicked={handleInitialsClick} on:allInitialsClicked={() => handleAllInitialsImage('initial')} on:handleAllInitialsImage={() => handleAllInitialsImage('sig')} on:manuelleClicked={handleManuelleClick} on:StampClicked={handleStampClick}  on:signClicked={handleSignClick} 
+    on:emailClicked={()=>  { if(selectedPageIndex >= 0){ addTextEmail(); }}} 
+    on:nameClicked={() => {if (selectedPageIndex >= 0) {addTextName(); }}} />
+      <Payment on:goToHome={handleGoToHome}/>
   </main>
 
   {:else if profile} 

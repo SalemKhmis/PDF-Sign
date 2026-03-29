@@ -3,6 +3,7 @@
   const dispatch = createEventDispatcher();
 
   export let onClose = () => {dispatch("goToHome");};
+export let onPayment = () => {dispatch("goToPayment");};
 
   const features = [
     {
@@ -157,7 +158,7 @@
 
       <!-- CTA Button -->
       <button
-      on:click={onClose}
+      on:click={onPayment}
         class="w-full bg-green text-white font-bold py-4 px-6 rounded-full text-lg transition mb-6" 
       >
         START FREE TRIAL

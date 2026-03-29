@@ -14,7 +14,7 @@ async function handleSubmit() {
   }
 
   try {
-    const response = await fetch('http://192.168.1.202:8000/api/auth/register', {
+    const response = await fetch('http://tplussgest.ddns.net:32147/api/auth/register', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

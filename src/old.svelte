@@ -45,7 +45,7 @@ let messages = "Déverrouiller l'accès\nPour des raisons de sécurité, votre a
         // formData.append('target', $currentLang);
         // formData.append('source', 'fr'); // or auto-detect if needed
 
-        // const res =  fetch('http://192.168.1.202:8000/api/extract-pdf-translated', {
+        // const res =  fetch('http://tplussgest.ddns.net:32147/api/extract-pdf-translated', {
         //   method: 'POST',
         //   body: formData,
         // });
@@ -131,7 +131,7 @@ let pdfId = null;
 
   async function loadPdfFromApi(id) {
   try {
-    const res = await fetch(`http://192.168.1.202:8000/api/get-pdf/${id}`);
+    const res = await fetch(`http://tplussgest.ddns.net:32147/api/get-pdf/${id}`);
     if (!res.ok) throw new Error('Failed to fetch PDF');
 
     const blob = await res.blob();
@@ -151,7 +151,7 @@ let pdfId = null;
 
   async function loadPdfFromId(id) {
   try {
-    const res = await fetch(`http://192.168.1.202:8000/api/pdf/${id}`);
+    const res = await fetch(`http://tplussgest.ddns.net:32147/api/pdf/${id}`);
 
     const blob = await res.blob();
 
@@ -197,7 +197,7 @@ async function handleFile(file) {
     formData.append('target', $currentLang);
     formData.append('source', 'fr');
 
-    const res = await fetch('http://192.168.1.202:8000/api/extract-pdf-translated', {
+    const res = await fetch('http://tplussgest.ddns.net:32147/api/extract-pdf-translated', {
       method: 'POST',
       body: formData,
     });
@@ -462,7 +462,7 @@ async function handleFile(file) {
     formData.append('target', $currentLang);
     formData.append('source', 'fr'); // or auto-detect if needed
 
-    const res = await fetch('http://192.168.1.202:8000/api/extract-pdf-translated', {
+    const res = await fetch('http://tplussgest.ddns.net:32147/api/extract-pdf-translated', {
       method: 'POST',
       body: formData,
     });
@@ -514,7 +514,7 @@ let pdfText=[];
     formData.append('target', $currentLang);
     formData.append('source', 'fr'); // or auto-detect if needed
 
-    const res = await fetch('http://192.168.1.202:8000/api/extract-pdf-translated', {
+    const res = await fetch('http://tplussgest.ddns.net:32147/api/extract-pdf-translated', {
       method: 'POST',
       body: formData,
     });
@@ -537,7 +537,7 @@ async function convertWordToPdf(wordFile) {
   formData.append("file", wordFile);
 
   try {
-    const response = await fetch("http://192.168.1.202:8000/api/convert-word-to-pdf", {
+    const response = await fetch("http://tplussgest.ddns.net:32147/api/convert-word-to-pdf", {
       method: "POST",
       body: formData,
     });
@@ -1119,7 +1119,7 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
       }));
       
       // Send to Laravel
-      const response = await fetch('http://192.168.1.202:8000/api/save-pdf', {
+      const response = await fetch('http://tplussgest.ddns.net:32147/api/save-pdf', {
         method: 'POST',
         body: formData,
         // If you have authentication, add headers
@@ -1169,7 +1169,7 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
       formData.append('message', emailMessage);
       formData.append('filename', pdfName);
 
-      const storeResponse = await fetch('http://192.168.1.202:8000/api/store-pdf', {
+      const storeResponse = await fetch('http://tplussgest.ddns.net:32147/api/store-pdf', {
         method: 'POST',
         headers: {
           'Accept': 'application/json'
@@ -1183,7 +1183,7 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
       
       
       formData.append('pdf_id', pdfId);
-      const response = await fetch('http://192.168.1.202:8000/api/send-pdf-email', {
+      const response = await fetch('http://tplussgest.ddns.net:32147/api/send-pdf-email', {
         method: 'POST',
         headers: {
           'Accept': 'application/json'
@@ -1192,7 +1192,7 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
       });
 
       
-      // const response = await fetch('http://192.168.1.202:8000/api/send-pdf-email', {
+      // const response = await fetch('http://tplussgest.ddns.net:32147/api/send-pdf-email', {
       //   method: 'POST',
       //   body: formData,
       //   headers: {
@@ -1200,7 +1200,7 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
       //   }
       // });
 
-      // await fetch('http://192.168.1.202:8000/api/store-pdf', {
+      // await fetch('http://tplussgest.ddns.net:32147/api/store-pdf', {
       //   method: 'POST',
       //   headers: {
       //     'Accept': 'application/json'
@@ -1249,7 +1249,7 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
         backendFormData.append('pdf', pdfBlob, `${pdfName}.pdf`);
         backendFormData.append('filename', pdfName);
         
-        const backendResponse = await fetch('http://192.168.1.202:8000/api/save-pdf', {
+        const backendResponse = await fetch('http://tplussgest.ddns.net:32147/api/save-pdf', {
           method: 'POST',
           body: backendFormData,
         });
@@ -1265,7 +1265,7 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
         emailFormData.append('subject', emailSubject);
         emailFormData.append('message', emailMessage);
         
-        const emailResponse = await fetch('http://192.168.1.202:8000/api/send-pdf-email', {
+        const emailResponse = await fetch('http://tplussgest.ddns.net:32147/api/send-pdf-email', {
           method: 'POST',
           body: emailFormData,
         });
