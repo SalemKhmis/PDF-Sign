@@ -19,7 +19,7 @@
   import Payment from './Payment.svelte';
   import html2canvas from "html2canvas";
   import LogoMenu from "./components/LogoMenu.svelte";
-  // import echo from "./echo.js";
+  // import echo from "./echo.js"; 
   import {
     readAsArrayBuffer,
     readAsImage,
