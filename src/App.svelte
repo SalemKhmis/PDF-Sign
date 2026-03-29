@@ -164,7 +164,7 @@ let pdfId = null;
     const blob = await res.blob();
 
     // Convert blob to File so you can reuse your existing function
-    const file = new File([blob], `pdf_${id}.pdf`, { type: 'application/pdf' });
+    let file = new File([blob], `pdf_${id}.pdf`, { type: 'application/pdf' });
 
     // Now use it like a normal uploaded file
     await onUploadFile({ target: { files: [file] } });
@@ -182,7 +182,7 @@ let pdfId = null;
 
     const blob = await res.blob();
 
-    const file = new File([blob], `pdf_${id}.pdf`, {
+    let file = new File([blob], `pdf_${id}.pdf`, {
       type: "application/pdf"
     });
 
@@ -337,7 +337,7 @@ async function handleFile(file) {
 
     // Convert canvas to file
     const modifiedBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-    const file = new File([modifiedBlob], 'stamp-modified.png', { type: 'image/png' });
+    let file = new File([modifiedBlob], 'stamp-modified.png', { type: 'image/png' });
 
     addImage(file);
 
@@ -456,7 +456,7 @@ async function handleFile(file) {
   countFile = 0;
   
   // Create a File object from the Blob returned by the API
-  const file = new File([apiFileBlob], originalFileName, { 
+  let file = new File([apiFileBlob], originalFileName, { 
     type: 'application/pdf',
     lastModified: Date.now()
   });
@@ -510,7 +510,7 @@ let pdfText=[];
   async function onUploadFile(e) {
   countFile = 0;
   const files = e.target.files || (e.dataTransfer && e.dataTransfer.files);
-  const file = files[0];
+  let file = files[0];
 
   if (!file) {
     return;
@@ -695,7 +695,7 @@ let showModal2 = false;
       async function uploadInitialImage(e) {
         countFile = 0;
         const files = e.target.files || (e.dataTransfer && e.dataTransfer.files);
-        const file = files[0];
+        let file = files[0];
 
 
 
@@ -712,7 +712,7 @@ let showModal2 = false;
 
   //   function uploadInitialImage(e) {
       
-  //       const file = e.target.files[0];
+  //       let file = e.target.files[0];
   //       console.log(' e.target',  e.target);
         
   //       saveInitialImage(file);
@@ -847,7 +847,7 @@ function handleImage(file) {
 }
 
 async function onUploadImage(e) {
-  const file = e.target.files[0];
+  let file = e.target.files[0];
   if (!file || selectedPageIndex < 0) return;
 
   try {
