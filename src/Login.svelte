@@ -23,26 +23,26 @@
 
     async function handleSubmit() {
       if (email && password) {
-        // const response = await fetch('http://127.0.0.1:5000/auth/login', {
-        //   method: 'POST',
-        //   headers: {
-        //     'Content-Type': 'application/json'
-        //   },
-        //   body: JSON.stringify({
-        //     "username": email,
-        //   "password": password
-        //   })
-        // });
+        const response = await fetch('http://tplussgest.ddns.net:32147/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            "username": email,
+          "password": password
+          })
+        });
   
-        // if (response.ok) {
+        if (response.ok) {
           dispatch('login', {
           "username": email,
           "password": password
         });
-        localStorage.setItem("session", 'session');
-        // } else {
-        //   alert('Login failed. Please check your credentials.');
-        // }
+        // localStorage.setItem("session", 'session');
+        } else {
+          alert('Login failed. Please check your credentials.');
+        }
       } else {
         alert('Please enter both email and password');
       }
