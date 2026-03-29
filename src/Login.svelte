@@ -35,7 +35,7 @@
           })
         });
       const data = await response.json();
-                localStorage.setItem("username", data.user.username);
+                localStorage.setItem("username", data.user.name);
           localStorage.setItem("email", data.user.email);
         localStorage.setItem("session", 'session');
         if (response.ok) {
