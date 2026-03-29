@@ -1665,7 +1665,7 @@ async function addHtmlBlockInAllPages(htmlElement, typeSign) {
 
       <div class="justify-center mr-3 w-full max-w-xs  block_name">
         <input
-          placeholder="File name"
+          placeholder={$translations['File name']}
           type="text"
           class="flex-grow bg-transparent"
           bind:value={pdfName} />
@@ -1677,7 +1677,7 @@ async function addHtmlBlockInAllPages(htmlElement, typeSign) {
         md:px-4 mr-3 md:mr-4 rounded" style="background: #3ba83a!important;"
         class:cursor-not-allowed={pages.length === 0 || saving || !pdfFile}
         class:bg-blue-700={pages.length === 0 || saving || !pdfFile}>
-        {saving ? 'Saving' : 'Save'}
+        {saving ? $translations['Saving'] : $translations['Save']}
       </button>
       <div class="flex block-top" style="background: white;
       border-radius: 29px;">
@@ -1782,10 +1782,10 @@ async function addHtmlBlockInAllPages(htmlElement, typeSign) {
           {#if logoutMenu == true}
           <div class="right-menu">
             <ul>
-              <li on:click={() => profile = true} style="    margin-bottom: 6px;">Profile</li>
-              <li on:click={() => pricing = true} style="  border-top: solid 1px #38a53d63;   margin-bottom: 6px;">Pricing</li>
-              <li  style="border-top: solid 1px #38a53d63;     margin-bottom: 6px;" >My files</li>
-              <li on:click={() => {authenticated = false; logoutMenu = false; showRegister = false; localStorage.removeItem("session");  localStorage.removeItem("token");}} style="border-top: solid 1px #38a53d63;" >Logout</li>
+              <li on:click={() => profile = true} style="    margin-bottom: 6px;">{$translations['Profile']}</li>
+              <li on:click={() => pricing = true} style="  border-top: solid 1px #38a53d63;   margin-bottom: 6px;">{$translations['Pricing']}</li>
+              <li  style="border-top: solid 1px #38a53d63;     margin-bottom: 6px;" > {$translations['My files']}</li>
+              <li on:click={() => {authenticated = false; logoutMenu = false; showRegister = false; localStorage.removeItem("session");  localStorage.removeItem("token");}} style="border-top: solid 1px #38a53d63;" >{$translations['Logout']}</li>
             </ul>
           </div>
           {/if}
@@ -2106,7 +2106,7 @@ async function addHtmlBlockInAllPages(htmlElement, typeSign) {
       <div class="flex-grow flex justify-center items-center">
         <input type="file" name="file" id="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.pptm,.opt" on:change={onUploadFile} class="hidden" />
         <label class="font-bold text-3xl" style="cursor: pointer;" for="file">
-          Choose File
+          {$translations['Choose File']}
           <br>
           <div>
             <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
