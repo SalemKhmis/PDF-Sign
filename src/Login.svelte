@@ -25,21 +25,25 @@
       if (email && password) {
         const response = await fetch('http://tplussgest.ddns.net:32147/api/auth/login', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
           body: JSON.stringify({
             "username": email,
           "password": password
           })
         });
-  
+      const data = await response.json();
+                localStorage.setItem("username", data.user.username);
+          localStorage.setItem("email", data.user.email);
+        localStorage.setItem("session", 'session');
         if (response.ok) {
           dispatch('login', {
           "username": email,
           "password": password
         });
-        // localStorage.setItem("session", 'session');
+
         } else {
           alert('Login failed. Please check your credentials.');
         }
