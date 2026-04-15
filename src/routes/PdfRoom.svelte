@@ -1,4 +1,4 @@
-<!-- <script>
+<script>
   import { echo } from "../lib/echo";
 
   let documentId = 1;
@@ -60,4 +60,4 @@
   background: yellow;
   padding: 2px 4px;
 }
-</style> -->
+</style>

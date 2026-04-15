@@ -19,7 +19,7 @@
   import Payment from './Payment.svelte';
   import html2canvas from "html2canvas";
   import LogoMenu from "./components/LogoMenu.svelte";
-  // import echo from "./echo.js"; 
+  import echo from "./echo.js"; 
   import {
     readAsArrayBuffer,
     readAsImage,
@@ -111,24 +111,24 @@ let pdfId = null;
 //   console.log("✅ WebSocket connected");
 // });
 
-// echo.connector.pusher.connection.bind('error', e => {
-//   console.error("❌ WS error", e);
-// });
+echo.connector.pusher.connection.bind('error', e => {
+  console.error("❌ WS error", e);
+});
 
-// const channel = echo.channel(`pdf.${pdfId}`);
+const channel = echo.channel(`pdf.${pdfId}`);
 
-// console.log("subscribing to", `pdf.${pdfId}`);
+console.log("subscribing to", `pdf.${pdfId}`);
 
-// channel.subscribed(() => {
-//   console.log("✅ subscribed to channel");
-// });
-// // if (pdfId) {
-//       echo.channel(`pdf.${pdfId}`)
-//         .listen(".pdf.updated", e => {
-//           console.log("📩 event received", e);
-//           handleRemoteChange(e);
-//         });
-//   // }
+channel.subscribed(() => {
+  console.log("✅ subscribed to channel");
+});
+// if (pdfId) {
+      echo.channel(`pdf.${pdfId}`)
+        .listen(".pdf.updated", e => {
+          console.log("📩 event received", e);
+          handleRemoteChange(e);
+        });
+  // }
 
   if (pdfId && !isAccessRestricted) {
     console.log('PDF ID from URL:', pdfId);
