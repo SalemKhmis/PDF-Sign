@@ -19,7 +19,8 @@
   import Payment from './Payment.svelte';
   import html2canvas from "html2canvas";
   import LogoMenu from "./components/LogoMenu.svelte";
-  import echo from "./echo.js"; 
+  import UserCursor from "./lib/components/UserCursor.svelte";
+  import echo from "./echo.js";
   import {
     readAsArrayBuffer,
     readAsImage,
@@ -87,6 +88,16 @@ let zoomLevel = 100;
 let pdfId = null;
   let date = null;
     let isAccessRestricted = false;
+
+  // --- Real-time collaboration state ---
+  // Unique id per tab so each client can ignore the broadcasts it triggered itself.
+  const senderId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  // Map of senderId -> { x, y, pageIndex, name, color, lastSeen }
+  let remoteCursors = {};
+  let pdfChannel = null;
+  let lastCursorSentAt = 0;
+  const CURSOR_THROTTLE_MS = 50;    // max ~20 msg/s per client
+  const CURSOR_STALE_MS = 10000;    // drop cursors we haven't seen in 10s
   let today = new Date();
   // for test purpose
   let showPricingModal=false;
@@ -107,28 +118,71 @@ let pdfId = null;
 
     }
 
-//     echo.connector.pusher.connection.bind('connected', () => {
-//   console.log("✅ WebSocket connected");
-// });
-
 echo.connector.pusher.connection.bind('error', e => {
   console.error("❌ WS error", e);
 });
 
-const channel = echo.channel(`pdf.${pdfId}`);
+if (pdfId) {
+  pdfChannel = echo.channel(`pdf.${pdfId}`);
+  console.log("subscribing to", `pdf.${pdfId}`);
 
-console.log("subscribing to", `pdf.${pdfId}`);
+  pdfChannel.subscribed(() => {
+    console.log("✅ subscribed to channel pdf." + pdfId);
+  });
 
-channel.subscribed(() => {
-  console.log("✅ subscribed to channel");
-});
-// if (pdfId) {
-      echo.channel(`pdf.${pdfId}`)
-        .listen(".pdf.updated", e => {
-          console.log("📩 event received", e);
-          handleRemoteChange(e);
-        });
-  // }
+  pdfChannel.listen(".pdf.updated", e => {
+    // Ignore echoes of our own changes.
+    if (e && e.object && e.object.senderId === senderId) return;
+    console.log("📩 pdf.updated", e);
+    handleRemoteChange(e);
+  });
+
+  pdfChannel.listen(".cursor.moved", e => {
+    if (!e || e.senderId === senderId) return;
+    remoteCursors = {
+      ...remoteCursors,
+      [e.senderId]: {
+        x: e.x,
+        y: e.y,
+        pageIndex: e.pageIndex,
+        name: e.user && e.user.name ? e.user.name : 'Guest',
+        color: e.color || '#3ba83a',
+        lastSeen: Date.now()
+      }
+    };
+  });
+
+  pdfChannel.listen(".cursor.left", e => {
+    if (!e || !e.senderId) return;
+    const next = { ...remoteCursors };
+    delete next[e.senderId];
+    remoteCursors = next;
+  });
+
+  // Drop stale cursors (for peers that crashed without sending "left").
+  setInterval(() => {
+    const now = Date.now();
+    let changed = false;
+    const next = { ...remoteCursors };
+    for (const id in next) {
+      if (now - next[id].lastSeen > CURSOR_STALE_MS) {
+        delete next[id];
+        changed = true;
+      }
+    }
+    if (changed) remoteCursors = next;
+  }, 2000);
+
+  // Tell peers we left when the tab closes.
+  window.addEventListener('beforeunload', () => {
+    try {
+      navigator.sendBeacon(
+        `http://tplussgest.ddns.net:32147/api/pdf-cursor-leave/${pdfId}`,
+        new Blob([JSON.stringify({ senderId })], { type: 'application/json' })
+      );
+    } catch (_) {}
+  });
+}
 
   if (pdfId && !isAccessRestricted) {
     console.log('PDF ID from URL:', pdfId);
@@ -971,6 +1025,7 @@ async function onUploadImage(e) {
     allObjects = allObjects.map((objects, pIndex) =>
       pIndex === selectedPageIndex ? [...objects, object] : objects
     );
+    syncToServer("add", { ...object, pageIndex: selectedPageIndex });
   }
   function addTextDate() {
     const id = genID();
@@ -989,6 +1044,7 @@ async function onUploadImage(e) {
     allObjects = allObjects.map((objects, pIndex) =>
       pIndex === selectedPageIndex ? [...objects, object] : objects
     );
+    syncToServer("add", { ...object, pageIndex: selectedPageIndex });
   }
   function addTextEmail(text = "salemkhmis003@gmail.com") {
     const id = genID();
@@ -997,6 +1053,7 @@ async function onUploadImage(e) {
       id,
       text: email,
       type: "text",
+      // (syncToServer call is emitted below after object is pushed)
       size: 16,
       width: 0, // recalculate after editing
       lineHeight: 1.4,
@@ -1007,6 +1064,7 @@ async function onUploadImage(e) {
     allObjects = allObjects.map((objects, pIndex) =>
       pIndex === selectedPageIndex ? [...objects, object] : objects
     );
+    syncToServer("add", { ...object, pageIndex: selectedPageIndex });
   }
   function addTextName(text = "Salem Khmis") {
     const id = genID();
@@ -1110,6 +1168,7 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
   allObjects = allObjects.map((objects, pIndex) =>
     pIndex === selectedPageIndex ? [...objects, object] : objects
   );
+  syncToServer("add", { ...object, pageIndex: selectedPageIndex });
 }
   function selectFontFamily(event) {
     const name = event.detail.name;
@@ -1127,7 +1186,9 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
       : objects
   );
 
-  syncToServer("update", { id: objectId, ...payload });
+  // payload may contain non-serializable bits (e.g. HTMLImageElement in `payload`)
+  // — syncToServer strips these before sending.
+  syncToServer("update", { id: objectId, pageIndex: selectedPageIndex, ...payload });
   }
   function deleteObject(objectId) {
       allObjects = allObjects.map((objects, pIndex) =>
@@ -1136,52 +1197,125 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
       : objects
   );
 
-  syncToServer("delete", { id: objectId });
+  syncToServer("delete", { id: objectId, pageIndex: selectedPageIndex });
   }
 
   async function syncToServer(action, object) {
-  await fetch(`http://tplussgest.ddns.net:32147/api/pdf-sync/${pdfId}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      action,
-      object
-    })
-  });
-}
-async function handleRemoteChange(e) {
+  if (!pdfId) return; // standalone mode, nothing to sync
+  // Strip any non-serializable fields (e.g. HTMLImageElement under `payload`)
+  // and tag with our sender id so every peer (including ourselves) can identify origin.
+  const safeObject = {};
+  for (const k in object) {
+    const v = object[k];
+    if (v === null || typeof v !== 'object' || v instanceof ArrayBuffer) {
+      safeObject[k] = v;
+    } else if (Array.isArray(v)) {
+      // e.g. drawing path points — JSON-safe
+      safeObject[k] = v;
+    } else if (v instanceof File || v instanceof Blob) {
+      // Shouldn't happen here — images are stored as data-URL strings already.
+      // Skip; the base64 `file` field carries the bytes.
+    } else {
+      // Plain object (e.g. nested config) — pass through, JSON.stringify will handle it.
+      safeObject[k] = v;
+    }
+  }
+  safeObject.senderId = senderId;
 
+  try {
+    await fetch(`http://tplussgest.ddns.net:32147/api/pdf-sync/${pdfId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action,
+        senderId,
+        user: { name: username || 'Guest', color: generateColorFromName(username || 'Guest') },
+        object: safeObject
+      })
+    });
+  } catch (err) {
+    console.warn('syncToServer failed', err);
+  }
+}
+
+async function broadcastCursor(x, y, pageIndex) {
+  if (!pdfId) return;
+  const now = Date.now();
+  if (now - lastCursorSentAt < CURSOR_THROTTLE_MS) return;
+  lastCursorSentAt = now;
+  try {
+    await fetch(`http://tplussgest.ddns.net:32147/api/pdf-cursor/${pdfId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        senderId,
+        user: { name: username || 'Guest' },
+        x, y, pageIndex,
+        color: generateColorFromName(username || 'Guest')
+      })
+    });
+  } catch (_) { /* ignore transient network errors */ }
+}
+
+// Convert client-space mouse coords into page-local coords (taking pagesScale into account)
+// so every viewer renders cursors at the same logical position even if zoom levels differ.
+function handlePageMouseMove(event, pIndex) {
+  // Find the per-page wrapper we added a reference to (div with id page-{pIndex})
+  const pageEl = document.getElementById(`page-${pIndex}`);
+  if (!pageEl) return;
+  const pdfRect = pageEl.querySelector('.relative.shadow-lg')?.getBoundingClientRect();
+  if (!pdfRect) return;
+  const scale = pagesScale[pIndex] || 1;
+  const zoom = zoomLevel / 100;
+  // Coordinates in page-local (unscaled) space:
+  const x = (event.clientX - pdfRect.left) / (scale * zoom);
+  const y = (event.clientY - pdfRect.top) / (scale * zoom);
+  broadcastCursor(x, y, pIndex);
+}
+
+async function handleRemoteChange(e) {
+  if (!e) return;
   const { action, object } = e;
+  if (!object || typeof object.pageIndex !== 'number') return;
+
+  const pIndex = object.pageIndex;
+  if (!allObjects[pIndex]) return;
 
   if (action === "add") {
+    // Don't re-add if we already have this id (guards against network re-delivery).
+    if (allObjects[pIndex].some(o => o.id === object.id)) return;
 
-    if (object.type === "image") {
-
-      // recreate the image from base64
-      const img = await readAsImage(object.file);
-
-      const newObject = {
-        ...object,
-        payload: img
-      };
-
-      allObjects[object.pageIndex] = [
-        ...allObjects[object.pageIndex],
-        newObject
-      ];
-
-    } else {
-
-      // text or other objects
-      allObjects[object.pageIndex] = [
-        ...allObjects[object.pageIndex],
-        object
-      ];
-
+    let newObject = { ...object };
+    if (object.type === "image" && object.file) {
+      try {
+        newObject.payload = await readAsImage(object.file);
+      } catch (err) {
+        console.warn('Failed to rehydrate image from broadcast', err);
+        return;
+      }
     }
 
+    allObjects = allObjects.map((objects, i) =>
+      i === pIndex ? [...objects, newObject] : objects
+    );
+    return;
   }
 
+  if (action === "update") {
+    allObjects = allObjects.map((objects, i) =>
+      i === pIndex
+        ? objects.map(o => o.id === object.id ? { ...o, ...object } : o)
+        : objects
+    );
+    return;
+  }
+
+  if (action === "delete") {
+    allObjects = allObjects.map((objects, i) =>
+      i === pIndex ? objects.filter(o => o.id !== object.id) : objects
+    );
+    return;
+  }
 }
   function onMeasure(scale, i) {
     pagesScale[i] = scale;
@@ -1472,6 +1606,13 @@ async function handleRemoteChange(e) {
     allObjects = allObjects.map((objects, pIndex) =>
       pIndex === selectedPageIndex ? [...objects, object] : objects
     );
+    // broadcast the signature/initials image to other viewers
+    syncToServer("add", {
+      id, type: "image", width, height,
+      x: object.x, y: object.y,
+      file: imgUrl,
+      pageIndex: selectedPageIndex
+    });
 }
 function handleShare(){
   showShare=!showShare;
@@ -1954,7 +2095,8 @@ async function addHtmlBlockInAllPages(htmlElement, typeSign) {
             id={`page-${pIndex}`}
             class="p-5 w-full flex flex-col items-center overflow-hidden"
             on:mousedown={() => selectPage(pIndex)}
-            on:touchstart={() => selectPage(pIndex)}>
+            on:touchstart={() => selectPage(pIndex)}
+            on:mousemove={(e) => handlePageMouseMove(e, pIndex)}>
 
             <div
               class="relative shadow-lg"  style="margin-left: {showTranslate ? 'auto' : '0'}"
@@ -2035,11 +2177,18 @@ async function addHtmlBlockInAllPages(htmlElement, typeSign) {
                       originWidth={object.originWidth}
                       originHeight={object.originHeight}
                       strokeColor={object.strokeColor}
-                      strokeWidth={object.strokeWidth}  
+                      strokeWidth={object.strokeWidth}
                       pageScale={pagesScale[pIndex]} />
                   {/if}
                 {/each}
-              
+
+                <!-- Remote collaborators' cursors on this page -->
+                {#each Object.entries(remoteCursors) as [rid, c] (rid)}
+                  {#if c.pageIndex === pIndex}
+                    <UserCursor x={c.x} y={c.y} color={c.color} name={c.name} />
+                  {/if}
+                {/each}
+
               </div>
 
                 {#if pIndex === pages.length-1}
