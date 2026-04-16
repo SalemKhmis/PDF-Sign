@@ -10,7 +10,11 @@
       "Bash(npm uninstall *)",
       "Bash(mv *)",
       "Bash(mv tailwind.config.js tailwind.config.cjs)",
-      "Bash(mv svelte.config.js svelte.config.cjs)"
+      "Bash(mv svelte.config.js svelte.config.cjs)",
+      "Bash(mv rollup.config.js rollup.config.mjs)",
+      "Bash(mv postcss.config.cjs postcss.config.js)",
+      "Bash(mv tailwind.config.cjs tailwind.config.js)",
+      "Bash(mv svelte.config.cjs svelte.config.js)"
     ]
   }
 }
