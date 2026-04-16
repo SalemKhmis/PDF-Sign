@@ -8,7 +8,9 @@
       "Bash(npx rollup *)",
       "Bash(npm ls *)",
       "Bash(npm uninstall *)",
-      "Bash(mv *)"
+      "Bash(mv *)",
+      "Bash(mv tailwind.config.js tailwind.config.cjs)",
+      "Bash(mv svelte.config.js svelte.config.cjs)"
     ]
   }
 }
