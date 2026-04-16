@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npm install *)",
+      "Bash(node *)",
+      "Bash(wait *)",
+      "Bash(npx rollup *)",
+      "Bash(npm ls *)",
+      "Bash(npm uninstall *)"
+    ]
+  }
+}

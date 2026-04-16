@@ -3,7 +3,7 @@
 <script>
   import { onMount } from "svelte";
   import { fly, scale } from "svelte/transition";
-  import Tailwind from "./Tailwind.svelte";
+  import Tailwind from "./Tailwind.svelte"; 
   import PDFPage from "./PDFPage.svelte";
   import Image from "./Image.svelte";
   import Text from "./Text.svelte";
@@ -186,17 +186,9 @@ if (pdfId) {
 
   if (pdfId && !isAccessRestricted) {
     console.log('PDF ID from URL:', pdfId);
-    loadPdfFromApi(pdfId);
-  }
-  		translateAll(textsToTranslate, 'en', $currentLang, val => loadingTrans = val);
-
+    await loadPdfFromApi(pdfId);
+  } else {
     try {
-        if (selectedColor) {
-          colorSign=selectedColor;
-        }
-         if (selectedColorBorder) {
-          colorSignBorder=selectedColorBorder;
-        }
       const res = await fetch("/test.pdf");
       const pdfBlob = await res.blob();
       await addPDF(pdfBlob);
@@ -208,6 +200,16 @@ if (pdfId) {
     } catch (e) {
       console.log(e);
     }
+  }
+
+  translateAll(textsToTranslate, 'en', $currentLang, val => loadingTrans = val);
+
+  if (selectedColor) {
+    colorSign = selectedColor;
+  }
+  if (selectedColorBorder) {
+    colorSignBorder = selectedColorBorder;
+  }
   });
 
   async function loadPdfFromApi(id) {
