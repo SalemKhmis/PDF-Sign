@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "author": "ShizukuIchi <shizukuichi@gmail.com>",
   "homepage": "https://pdf-editor.now.sh",
+  "type": "module",
   "scripts": {
-    "build": "rollup -c rollup.config.mjs",
+    "build": "rollup -c",
     "dev": "concurrently \"rollup -c -w\" \"sirv public --no-clear --dev --host 0.0.0.0 --port 8121\"",
     "start": "sirv public --host 0.0.0.0 --port 8121"
   },
