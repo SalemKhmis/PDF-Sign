@@ -96,7 +96,9 @@ let pdfId = null;
   let remoteCursors = {};
   let pdfChannel = null;
   let lastCursorSentAt = 0;
-  const CURSOR_THROTTLE_MS = 50;    // max ~20 msg/s per client
+  let pendingCursor = null;         // last coords received during throttle window
+  let cursorTimer = null;           // trailing-edge timer id
+  const CURSOR_THROTTLE_MS = 1000;   // ~10 msg/s per client
   const CURSOR_STALE_MS = 10000;    // drop cursors we haven't seen in 10s
   let today = new Date();
   // for test purpose
@@ -1225,7 +1227,7 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
   safeObject.senderId = senderId;
 
   try {
-    await fetch(`http://tplussgest.ddns.net:32147/api/pdf-sync/${pdfId}`, {
+    const res = await fetch(`http://tplussgest.ddns.net:32147/api/pdf-sync/${pdfId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -1235,18 +1237,46 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
         object: safeObject
       })
     });
+    if (!res.ok) {
+      // Surface broadcast failures returned by the backend (e.g. 502 when Pusher is misconfigured).
+      let body = null;
+      try { body = await res.json(); } catch (_) {}
+      console.warn('syncToServer non-OK status', res.status, body);
+    }
   } catch (err) {
     console.warn('syncToServer failed', err);
   }
 }
 
-async function broadcastCursor(x, y, pageIndex) {
+function broadcastCursor(x, y, pageIndex) {
   if (!pdfId) return;
-  const now = Date.now();
-  if (now - lastCursorSentAt < CURSOR_THROTTLE_MS) return;
-  lastCursorSentAt = now;
+  // Always remember the most recent position so the trailing call sends the
+  // user's actual final location (not a stale sample from earlier in the burst).
+  pendingCursor = { x, y, pageIndex };
+
+  const elapsed = Date.now() - lastCursorSentAt;
+  if (elapsed >= CURSOR_THROTTLE_MS) {
+    flushCursor();
+  } else if (cursorTimer === null) {
+    cursorTimer = setTimeout(flushCursor, CURSOR_THROTTLE_MS - elapsed);
+  }
+}
+
+function flushCursor() {
+  if (cursorTimer !== null) {
+    clearTimeout(cursorTimer);
+    cursorTimer = null;
+  }
+  if (!pendingCursor) return;
+  const { x, y, pageIndex } = pendingCursor;
+  pendingCursor = null;
+  lastCursorSentAt = Date.now();
+  sendCursor(x, y, pageIndex);
+}
+
+async function sendCursor(x, y, pageIndex) {
   try {
-    await fetch(`http://tplussgest.ddns.net:32147/api/pdf-cursor/${pdfId}`, {
+    const res = await fetch(`http://tplussgest.ddns.net:32147/api/pdf-cursor/${pdfId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -1256,7 +1286,11 @@ async function broadcastCursor(x, y, pageIndex) {
         color: generateColorFromName(username || 'Guest')
       })
     });
-  } catch (_) { /* ignore transient network errors */ }
+    if (!res.ok) console.warn('broadcastCursor non-OK status', res.status);
+  } catch (err) {
+    // Surface failures in prod so mixed-content / unreachable host problems are visible.
+    console.warn('broadcastCursor failed', err);
+  }
 }
 
 // Convert client-space mouse coords into page-local coords (taking pagesScale into account)
