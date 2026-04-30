@@ -99,7 +99,7 @@ let pdfId = null;
   let pendingCursor = null;         // last coords received during throttle window
   let cursorTimer = null;           // trailing-edge timer id
   let lastSentCursor = null;        // last (x,y,pageIndex) we actually sent — skip duplicates
-  const CURSOR_THROTTLE_MS = 75;    // ~13 msg/s per client — smooth motion without flooding
+  const CURSOR_THROTTLE_MS = 10;    // ~13 msg/s per client — smooth motion without flooding
   const CURSOR_STALE_MS = 10000;    // drop cursors we haven't seen in 10s
   let today = new Date();
   // for test purpose
