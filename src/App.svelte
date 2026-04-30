@@ -94,13 +94,18 @@ let pdfId = null;
   const senderId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   // Map of senderId -> { x, y, pageIndex, name, color, lastSeen }
   let remoteCursors = {};
+  // Local self-cursor in viewport coords (clientX/clientY); null when mouse is off any PDF page.
+  let myCursorPos = null;
   let pdfChannel = null;
   let lastCursorSentAt = 0;
   let pendingCursor = null;         // last coords received during throttle window
   let cursorTimer = null;           // trailing-edge timer id
   let lastSentCursor = null;        // last (x,y,pageIndex) we actually sent — skip duplicates
-  const CURSOR_THROTTLE_MS = 10;    // ~13 msg/s per client — smooth motion without flooding
-  const CURSOR_STALE_MS = 10000;    // drop cursors we haven't seen in 10s
+  let cursorInFlight = [];          // [{controller, startedAt}] of in-flight cursor POSTs (chronological)
+  const CURSOR_THROTTLE_MS = 150;   // ~6.6 msg/s per client — smooth motion without flooding
+  const CURSOR_CANCEL_WINDOW_MS = 400; // cancel a still-loading prev POST if it's < this old
+  const CURSOR_INFLIGHT_CAP = 5;    // if more than this are pending, abort the oldest, keep the newest 2
+  const CURSOR_STALE_MS = 50000;    // drop cursors we haven't seen in 10s
   let today = new Date();
   // for test purpose
   let showPricingModal=false;
@@ -1282,8 +1287,8 @@ function flushCursor() {
   if (
     lastSentCursor &&
     lastSentCursor.pageIndex === pageIndex &&
-    Math.abs(lastSentCursor.x - x) < 1 &&
-    Math.abs(lastSentCursor.y - y) < 1
+    Math.abs(lastSentCursor.x - x) < 10 &&
+    Math.abs(lastSentCursor.y - y) < 10
   ) {
     return;
   }
@@ -1294,11 +1299,37 @@ function flushCursor() {
 }
 
 async function sendCursor(x, y, pageIndex) {
+  const now = Date.now();
+
+  // Rule 1: If the most recent in-flight POST started < CURSOR_CANCEL_WINDOW_MS ago,
+  // abort it — the new position supersedes it. Older pending requests are left alone
+  // (server may just be slow; tearing down its only attempt won't help).
+  const last = cursorInFlight[cursorInFlight.length - 1];
+  if (last && now - last.startedAt < CURSOR_CANCEL_WINDOW_MS) {
+    last.controller.abort();
+    cursorInFlight.pop();
+  }
+
+  // Register the new request.
+  const controller = new AbortController();
+  const entry = { controller, startedAt: now };
+  cursorInFlight.push(entry);
+
+  // Rule 2: Hard cap on concurrent in-flight requests. If more than CURSOR_INFLIGHT_CAP
+  // are pending (e.g. server is unreachable and Rule 1 has been letting older ones live),
+  // abort everything except the two newest so we don't pile up indefinitely.
+  if (cursorInFlight.length > CURSOR_INFLIGHT_CAP) {
+    const toAbort = cursorInFlight.slice(0, -2);
+    cursorInFlight = cursorInFlight.slice(-2);
+    toAbort.forEach(e => e.controller.abort());
+  }
+
   try {
     const res = await fetch(`http://tplussgest.ddns.net:32147/api/pdf-cursor/${pdfId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       keepalive: true,
+      signal: controller.signal,
       body: JSON.stringify({
         senderId,
         user: { name: username || 'Guest' },
@@ -1308,8 +1339,12 @@ async function sendCursor(x, y, pageIndex) {
     });
     if (!res.ok) console.warn('broadcastCursor non-OK status', res.status);
   } catch (err) {
-    // Surface failures in prod so mixed-content / unreachable host problems are visible.
+    // AbortError is expected when a newer cursor send supersedes this one.
+    if (err && err.name === 'AbortError') return;
     console.warn('broadcastCursor failed', err);
+  } finally {
+    const idx = cursorInFlight.indexOf(entry);
+    if (idx !== -1) cursorInFlight.splice(idx, 1);
   }
 }
 
@@ -1317,8 +1352,16 @@ async function sendCursor(x, y, pageIndex) {
 // coords and defer all DOM/layout work (getBoundingClientRect, etc.) to the throttled flush.
 function handlePageMouseMove(event, pIndex) {
   if (!pdfId) return;
+  // Local self-cursor follows the mouse immediately at native rate (no throttle, no DOM math).
+  myCursorPos = { x: event.clientX, y: event.clientY };
+  // Outbound broadcast is throttled inside scheduleCursorFlush.
   pendingCursor = { clientX: event.clientX, clientY: event.clientY, pageIndex: pIndex };
   scheduleCursorFlush();
+}
+
+function handlePageMouseLeave() {
+  // Hide the self-cursor overlay when the mouse leaves the PDF page area.
+  myCursorPos = null;
 }
 
 async function handleRemoteChange(e) {
@@ -2144,7 +2187,8 @@ async function addHtmlBlockInAllPages(htmlElement, typeSign) {
             class="p-5 w-full flex flex-col items-center overflow-hidden"
             on:mousedown={() => selectPage(pIndex)}
             on:touchstart={() => selectPage(pIndex)}
-            on:mousemove={(e) => handlePageMouseMove(e, pIndex)}>
+            on:mousemove={(e) => handlePageMouseMove(e, pIndex)}
+            on:mouseleave={handlePageMouseLeave}>
 
             <div
               class="relative shadow-lg"  style="margin-left: {showTranslate ? 'auto' : '0'}"
@@ -2348,8 +2392,25 @@ async function addHtmlBlockInAllPages(htmlElement, typeSign) {
         
       </div>
     </div>
-    
 
+
+    <!-- Self-cursor overlay: shows you the same name/color label other users see for you. -->
+    {#if pdfId && myCursorPos}
+      <div class="self-cursor" style="left: {myCursorPos.x}px; top: {myCursorPos.y}px;">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path
+            d="M2 2 L20 11 L11 13 L8 20 Z"
+            fill={generateColorFromName(username || 'Guest')}
+            stroke="white"
+            stroke-width="1.5"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <div class="self-cursor-label" style="background: {generateColorFromName(username || 'Guest')};">
+          {username || 'Guest'}
+        </div>
+      </div>
+    {/if}
 
   </main>
   {/if}
@@ -2962,6 +3023,26 @@ async function addHtmlBlockInAllPages(htmlElement, typeSign) {
   }
   .css-po3aid{
     font-size: 20px;
+  }
+
+  /* Self-cursor overlay — pinned to viewport coords, mirrors the remote-cursor look. */
+  .self-cursor {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-2px, -2px);
+  }
+  .self-cursor-label {
+    position: absolute;
+    left: 18px;
+    top: 14px;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   }
 </style>
 
