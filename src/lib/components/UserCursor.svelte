@@ -27,7 +27,7 @@
         pointer-events: none;
         z-index: 9999;
         transform: translate(-2px, -2px);
-        transition: left 80ms linear, top 80ms linear;
+        transition: left 120ms linear, top 120ms linear;
     }
     .label {
         position: absolute;

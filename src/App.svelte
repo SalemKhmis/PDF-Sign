@@ -98,7 +98,8 @@ let pdfId = null;
   let lastCursorSentAt = 0;
   let pendingCursor = null;         // last coords received during throttle window
   let cursorTimer = null;           // trailing-edge timer id
-  const CURSOR_THROTTLE_MS = 1000;   // ~10 msg/s per client
+  let lastSentCursor = null;        // last (x,y,pageIndex) we actually sent — skip duplicates
+  const CURSOR_THROTTLE_MS = 75;    // ~13 msg/s per client — smooth motion without flooding
   const CURSOR_STALE_MS = 10000;    // drop cursors we haven't seen in 10s
   let today = new Date();
   // for test purpose
@@ -1270,6 +1271,18 @@ function flushCursor() {
   if (!pendingCursor) return;
   const { x, y, pageIndex } = pendingCursor;
   pendingCursor = null;
+
+  // Skip if the cursor hasn't actually moved since the last send (e.g. user paused).
+  if (
+    lastSentCursor &&
+    lastSentCursor.pageIndex === pageIndex &&
+    Math.abs(lastSentCursor.x - x) < 1 &&
+    Math.abs(lastSentCursor.y - y) < 1
+  ) {
+    return;
+  }
+
+  lastSentCursor = { x, y, pageIndex };
   lastCursorSentAt = Date.now();
   sendCursor(x, y, pageIndex);
 }
@@ -1279,6 +1292,7 @@ async function sendCursor(x, y, pageIndex) {
     const res = await fetch(`http://tplussgest.ddns.net:32147/api/pdf-cursor/${pdfId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      keepalive: true,
       body: JSON.stringify({
         senderId,
         user: { name: username || 'Guest' },
