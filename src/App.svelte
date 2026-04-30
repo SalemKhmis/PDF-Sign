@@ -1249,12 +1249,8 @@ function addDrawing(originWidth, originHeight, path, scale = 1, strokeColor, str
   }
 }
 
-function broadcastCursor(x, y, pageIndex) {
+function scheduleCursorFlush() {
   if (!pdfId) return;
-  // Always remember the most recent position so the trailing call sends the
-  // user's actual final location (not a stale sample from earlier in the burst).
-  pendingCursor = { x, y, pageIndex };
-
   const elapsed = Date.now() - lastCursorSentAt;
   if (elapsed >= CURSOR_THROTTLE_MS) {
     flushCursor();
@@ -1269,8 +1265,18 @@ function flushCursor() {
     cursorTimer = null;
   }
   if (!pendingCursor) return;
-  const { x, y, pageIndex } = pendingCursor;
+  const { clientX, clientY, pageIndex } = pendingCursor;
   pendingCursor = null;
+
+  // Heavy DOM/layout work happens here (≤13×/sec), not on every mousemove.
+  const pageEl = document.getElementById(`page-${pageIndex}`);
+  if (!pageEl) return;
+  const pdfRect = pageEl.querySelector('.relative.shadow-lg')?.getBoundingClientRect();
+  if (!pdfRect) return;
+  const scale = pagesScale[pageIndex] || 1;
+  const zoom = zoomLevel / 100;
+  const x = (clientX - pdfRect.left) / (scale * zoom);
+  const y = (clientY - pdfRect.top) / (scale * zoom);
 
   // Skip if the cursor hasn't actually moved since the last send (e.g. user paused).
   if (
@@ -1307,20 +1313,12 @@ async function sendCursor(x, y, pageIndex) {
   }
 }
 
-// Convert client-space mouse coords into page-local coords (taking pagesScale into account)
-// so every viewer renders cursors at the same logical position even if zoom levels differ.
+// Hot path — runs on every mousemove (60+/sec). Keep it cheap: just stash the raw event
+// coords and defer all DOM/layout work (getBoundingClientRect, etc.) to the throttled flush.
 function handlePageMouseMove(event, pIndex) {
-  // Find the per-page wrapper we added a reference to (div with id page-{pIndex})
-  const pageEl = document.getElementById(`page-${pIndex}`);
-  if (!pageEl) return;
-  const pdfRect = pageEl.querySelector('.relative.shadow-lg')?.getBoundingClientRect();
-  if (!pdfRect) return;
-  const scale = pagesScale[pIndex] || 1;
-  const zoom = zoomLevel / 100;
-  // Coordinates in page-local (unscaled) space:
-  const x = (event.clientX - pdfRect.left) / (scale * zoom);
-  const y = (event.clientY - pdfRect.top) / (scale * zoom);
-  broadcastCursor(x, y, pIndex);
+  if (!pdfId) return;
+  pendingCursor = { clientX: event.clientX, clientY: event.clientY, pageIndex: pIndex };
+  scheduleCursorFlush();
 }
 
 async function handleRemoteChange(e) {
